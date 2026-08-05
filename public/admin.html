@@ -1,739 +1,103 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="csrf-token" content="" /><script>document.addEventListener("DOMContentLoaded",function(){var m=document.cookie.match(/XSRF-TOKEN=([^;]+)/);if(m){document.querySelector("meta[name=csrf-token]").content=decodeURIComponent(m[1]);}});</script>
-<title>MEMO STORE — لوحة التحكم</title>
-<link rel="icon" href="/assets/memo-mark.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Cairo:wght@600;700;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-:root{
-  --ink:#04060F;--shard:#0A1024;--volt:#1B4DFF;--beam:#5B8CFF;--chrome:#F2F5FF;--steel:#7C89A8;
-  --line:rgba(91,140,255,.16);--ok:#3DFF9E;--warn:#FFB43C;--bad:#FF4D6D;--notch:12px;
-  --fd:'Cairo',sans-serif;--fb:'Tajawal',sans-serif;--fm:'JetBrains Mono',monospace;
-  --logo-nav:32px;
-}
-html[lang=en]{--fd:'Chakra Petch',sans-serif;--fb:'Inter Tight',sans-serif}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--ink);color:var(--chrome);font-family:var(--fb);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
-.notch{clip-path:polygon(0 0,calc(100% - var(--notch)) 0,100% var(--notch),100% 100%,var(--notch) 100%,0 calc(100% - var(--notch)))}
-html[lang=en] .notch{clip-path:polygon(var(--notch) 0,100% 0,100% calc(100% - var(--notch)),calc(100% - var(--notch)) 100%,0 100%,0 var(--notch))}
-h1,h2,h3{font-family:var(--fd);font-weight:900;letter-spacing:0}
-html[lang=en] h1,html[lang=en] h2,html[lang=en] h3{text-transform:uppercase;font-weight:700}
-a{color:inherit;text-decoration:none}
-button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
-img{display:block;max-width:100%}
-.shell{display:grid;grid-template-columns:222px 1fr;min-height:100vh}
+<?php
 
-aside{border-inline-end:1px solid var(--line);background:#060915;padding:20px 0;position:sticky;top:0;height:100vh;overflow-y:auto}
-.alogo{padding:0 20px 20px}
-.alogo img{height:var(--logo-nav);width:auto;filter:drop-shadow(0 0 14px rgba(27,77,255,.55))}
-aside nav button{display:block;width:100%;text-align:start;padding:10px 20px;color:var(--steel);
-  border-inline-start:2px solid transparent;font-size:13.5px;transition:.2s}
-aside nav button:hover{color:var(--chrome);background:rgba(27,77,255,.05)}
-aside nav button.on{color:var(--chrome);border-inline-start-color:var(--volt);background:rgba(27,77,255,.1)}
-aside h4{font-family:var(--fm);font-size:9px;letter-spacing:.18em;color:#4A5570;padding:16px 20px 6px;text-transform:uppercase}
-html[lang=ar] aside h4{font-family:var(--fb);letter-spacing:0;font-size:11.5px;text-transform:none}
+namespace App\Http\Controllers;
 
-main{padding:22px clamp(14px,3vw,28px) 60px;max-width:1320px}
-.top{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-.top h1{font-size:22px}
-.sp{margin-inline-start:auto;display:flex;align-items:center;gap:10px}
-.lang{--notch:7px;display:flex;border:1px solid var(--line);font-family:var(--fm);font-size:11px}
-.lang button{padding:6px 11px;color:var(--steel)}
-.lang button.on{background:var(--volt);color:#fff}
+use App\Models\Category;
+use App\Models\Video;
+use App\Services\PlaybackGuard;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
-.kpi{--notch:10px;background:var(--shard);border:1px solid var(--line);padding:16px}
-.kpi span{font-family:var(--fb);font-size:11.5px;color:var(--steel)}
-.kpi b{display:block;font-family:var(--fd);font-size:26px;margin-top:4px;line-height:1}
-.kpi i{font-style:normal;font-size:11.5px;color:var(--ok)}
-.kpi i.w{color:var(--warn)}.kpi i.b{color:var(--bad)}
+/**
+ * The public library. No login, no gating - these videos exist to be watched.
+ *
+ * Protection here is not access control. It is the brand watermark burned in
+ * at transcode time, a per-viewer forensic overlay drawn by the player, short
+ * lived signed URLs so the stream cannot be hotlinked, and a verify code that
+ * lets anyone confirm the source.
+ */
+class LibraryController extends Controller
+{
+    public function __construct(private PlaybackGuard $guard) {}
 
-.panel{--notch:14px;background:var(--shard);border:1px solid var(--line);margin-bottom:16px}
-.panel>header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.panel>header h2{font-size:15px}
-.panel>header small{margin-inline-start:auto;font-size:12px;color:var(--steel)}
-.in{padding:18px}
-
-input[type=text],input[type=url],input[type=number],select,textarea{width:100%;background:#060B1C;
-  border:1px solid var(--line);color:var(--chrome);padding:10px 12px;font-family:inherit;font-size:13px;--notch:8px}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--volt)}
-label.f{display:block;font-size:12px;color:var(--steel);margin-bottom:5px}
-.btn{--notch:9px;background:var(--volt);color:#fff;padding:10px 18px;font-family:var(--fd);font-weight:700;
-  font-size:13px;transition:.2s;display:inline-flex;align-items:center;gap:7px}
-.btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px -10px var(--volt)}
-.btn[disabled]{opacity:.4;transform:none;box-shadow:none;cursor:not-allowed}
-.btn.sm{padding:6px 12px;font-size:12px}
-.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--chrome)}
-.btn.bad{background:var(--bad)}
-.btn.ok{background:#127a4a}
-
-.drop{--notch:12px;border:1px dashed rgba(91,140,255,.4);background:rgba(27,77,255,.04);padding:28px;text-align:center;transition:.25s}
-.drop.hot{border-color:var(--volt);background:rgba(27,77,255,.12)}
-.drop b{display:block;font-family:var(--fd);font-weight:700;font-size:15px}
-.drop small{display:block;font-size:12.5px;color:var(--steel);margin-top:6px}
-.fields{display:grid;grid-template-columns:1fr 1fr 190px 190px;gap:11px;margin-top:14px}
-.queue{margin-top:14px;display:grid;gap:9px}
-.job{--notch:8px;border:1px solid var(--line);padding:12px 15px;background:rgba(4,6,15,.5)}
-.job .r{display:flex;align-items:center;gap:10px;font-size:13px}
-.job .r span{margin-inline-start:auto;font-size:12px;color:var(--steel)}
-.pbar{height:4px;background:rgba(242,245,255,.1);margin-top:9px;position:relative;overflow:hidden}
-.pbar i{position:absolute;inset-block:0;inset-inline:0 100%;background:linear-gradient(90deg,var(--volt),var(--beam));
-  transition:inset-inline-end .4s;box-shadow:0 0 10px var(--volt)}
-
-.scroll{overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:640px}
-th{font-size:12px;color:var(--steel);text-align:start;padding:10px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:11px 16px;border-bottom:1px solid rgba(91,140,255,.07);font-size:13px;vertical-align:middle}
-tr:hover td{background:rgba(27,77,255,.04)}
-.tag{--notch:4px;display:inline-block;padding:3px 9px;font-size:11.5px;white-space:nowrap}
-.tag.ok{background:rgba(61,255,158,.12);color:var(--ok)}
-.tag.run{background:rgba(27,77,255,.16);color:var(--beam)}
-.tag.wait{background:rgba(124,137,168,.14);color:var(--steel)}
-.tag.bad{background:rgba(255,77,109,.13);color:var(--bad)}
-.tag.warn{background:rgba(255,180,60,.13);color:var(--warn)}
-.mono{font-family:var(--fm);font-size:11.5px;color:var(--steel);direction:ltr;display:inline-block}
-.acts{display:flex;gap:6px;flex-wrap:wrap}
-
-/* watermark composer */
-.wmgrid{display:grid;grid-template-columns:1fr 300px;gap:20px}
-.stagebox{background:
-   linear-gradient(45deg,rgba(91,140,255,.06) 25%,transparent 25%,transparent 75%,rgba(91,140,255,.06) 75%) 0 0/16px 16px,
-   linear-gradient(45deg,rgba(91,140,255,.06) 25%,transparent 25%,transparent 75%,rgba(91,140,255,.06) 75%) 8px 8px/16px 16px,
-   #05091A;padding:14px;--notch:8px;display:grid;place-items:center}
-#wmCanvas{max-width:100%;height:auto;background:#0b1020}
-.slider{margin-bottom:14px}
-.slider .row{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;font-size:12px;color:var(--steel)}
-.slider .row output{margin-inline-start:auto;font-family:var(--fm);font-size:11.5px;color:var(--beam);
-  background:rgba(27,77,255,.12);padding:2px 8px}
-input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:rgba(242,245,255,.14);outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;background:var(--volt);
-  cursor:pointer;box-shadow:0 0 12px var(--volt);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
-
-.hide{display:none!important}
-.empty{padding:34px 18px;text-align:center;color:var(--steel);font-size:13.5px}
-.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(91,140,255,.3);
-  border-top-color:var(--volt);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
-@keyframes sp{to{transform:rotate(360deg)}}
-.toast{position:fixed;inset-block-end:22px;inset-inline-start:50%;transform:translateX(50%);
-  background:var(--volt);color:#fff;padding:11px 20px;--notch:8px;font-size:13.5px;z-index:200;
-  opacity:0;pointer-events:none;transition:opacity .25s}
-html[lang=en] .toast{transform:translateX(-50%)}
-.toast.show{opacity:1}
-.toast.bad{background:var(--bad)}
-
-#mbtn{display:none;font-size:20px}
-@media(max-width:980px){
-  .shell{grid-template-columns:1fr}
-  aside{position:fixed;inset-block:0;inset-inline-start:0;width:230px;z-index:90;transform:translateX(105%);transition:transform .3s}
-  html[lang=en] aside{transform:translateX(-105%)}
-  aside.open{transform:none}
-  #mbtn{display:block}
-  .fields,.wmgrid{grid-template-columns:1fr}
-}
-</style>
-</head>
-<body>
-<div class="shell">
-
-<aside id="side">
-  <div class="alogo"><img id="logoSide" src="/assets/memo-logo.png" alt="MEMO STORE"></div>
-  <nav id="nav">
-    <h4 data-t="g.lib">المكتبة</h4>
-    <button class="on" data-view="videos" data-t="g.videos">الفيديوهات</button>
-    <button data-view="upload" data-t="g.upload">رفع فيديو</button>
-    <h4 data-t="g.brand">الهوية</h4>
-    <button data-view="brand" data-t="g.wm">الشعار والعلامة المائية</button>
-    <h4 data-t="g.protect">الحماية</h4>
-    <button data-view="leaks" data-t="g.leaks">بلاغات السرقة</button>
-    <button data-view="activity" data-t="g.activity">سجل النشاط</button>
-  </nav>
-</aside>
-
-<main>
-  <div class="top">
-    <button id="mbtn">☰</button>
-    <h1 id="viewTitle">الفيديوهات</h1>
-    <span id="liveTag" class="tag run notch"><span class="spin"></span></span>
-    <div class="sp">
-      <div class="lang"><button data-lang="ar" class="on">ع</button><button data-lang="en">EN</button></div>
-      <button class="btn ghost sm notch" id="refresh" data-t="a.refresh">تحديث</button>
-    </div>
-  </div>
-
-  <div class="kpis" id="kpis"></div>
-
-  <!-- VIDEOS -->
-  <section data-panel="videos">
-    <div class="panel notch">
-      <header><h2 data-t="v.h">مكتبة الفيديوهات</h2><small id="vCount"></small></header>
-      <div class="scroll"><table id="vTable"><thead><tr>
-        <th data-t="v.title">العنوان</th><th data-t="v.cat">التصنيف</th><th data-t="v.dur">المدة</th>
-        <th data-t="v.views">المشاهدات</th><th data-t="v.wm">العلامة</th><th data-t="v.code">كود التحقق</th>
-        <th data-t="v.status">الحالة</th><th></th></tr></thead><tbody></tbody></table></div>
-      <div class="empty hide" id="vEmpty" data-t="v.empty">لا توجد فيديوهات بعد. ارفع أول فيديو من قسم «رفع فيديو».</div>
-    </div>
-  </section>
-
-  <!-- UPLOAD -->
-  <section data-panel="upload" class="hide">
-    <div class="panel notch">
-      <header><h2 data-t="u.h">رفع فيديو جديد</h2><small data-t="u.sub">أجزاء ٨ ميجابايت · يُستأنف تلقائياً · حتى ٢٠ جيجابايت</small></header>
-      <div class="in">
-        <div class="drop notch" id="drop">
-          <b data-t="u.drop">أفلت الملف الأصلي هنا</b>
-          <small data-t="u.hint">MP4 / MOV / MKV — الملف الأصلي لا يغادر القرص الخاص أبداً</small>
-          <div style="margin-top:12px"><button class="btn sm notch" id="browse" data-t="u.browse">تصفّح الملفات</button></div>
-          <input type="file" id="file" accept="video/*" hidden>
-        </div>
-        <div class="fields">
-          <div><label class="f" data-t="u.tEn">العنوان (إنجليزي)</label><input type="text" id="tEn" class="notch"></div>
-          <div><label class="f" data-t="u.tAr">العنوان (عربي)</label><input type="text" id="tAr" class="notch" dir="rtl"></div>
-          <div><label class="f" data-t="u.cat">التصنيف</label><select id="cat" class="notch"></select></div>
-          <div><label class="f" data-t="u.exp">الخبير</label><select id="exp" class="notch"><option value="">—</option></select></div>
-        </div>
-        <div style="margin-top:11px"><label class="f" data-t="u.desc">الوصف</label>
-          <textarea id="desc" class="notch" rows="2"></textarea></div>
-        <div style="margin-top:14px;display:flex;gap:9px;align-items:center;flex-wrap:wrap">
-          <button class="btn notch" id="go" disabled data-t="u.start">ابدأ الرفع</button>
-          <button class="btn ghost notch sm hide" id="abort" data-t="u.cancel">إلغاء</button>
-          <span class="mono" id="hint"></span>
-        </div>
-        <div class="queue" id="queue"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- BRAND + WATERMARK -->
-  <section data-panel="brand" class="hide">
-    <div class="panel notch">
-      <header><h2 data-t="b.h">العلامة المائية المحروقة</h2>
-        <small data-t="b.sub">تُدمج في كل إطار أثناء التحويل — أي نسخة مسروقة تحمل علامتك</small></header>
-      <div class="in wmgrid">
-        <div class="stagebox notch"><canvas id="wmCanvas" width="640" height="360"></canvas></div>
-        <div>
-          <label class="f" data-t="b.phone">الرقم الظاهر في العلامة</label>
-          <input type="text" id="wmPhone" class="notch" dir="ltr" value="01095236175">
-
-          <div class="slider" style="margin-top:14px">
-            <div class="row"><label data-t="b.size">حجم العلامة</label><output id="oSize">18%</output></div>
-            <input type="range" id="rSize" min="8" max="34" value="18">
-          </div>
-          <div class="slider">
-            <div class="row"><label data-t="b.op">الشفافية</label><output id="oOp">72%</output></div>
-            <input type="range" id="rOp" min="25" max="100" value="72">
-          </div>
-          <div>
-            <label class="f" data-t="b.pos">الموضع</label>
-            <select id="wmPos" class="notch">
-              <option value="br" data-t="b.br">أسفل يمين</option>
-              <option value="bl" data-t="b.bl">أسفل يسار</option>
-              <option value="tr" data-t="b.tr">أعلى يمين</option>
-              <option value="tl" data-t="b.tl">أعلى يسار</option>
-            </select>
-          </div>
-
-          <div class="slider" style="margin-top:16px">
-            <div class="row"><label data-t="b.nav">شعار الشريط العلوي</label><output id="oNav">32 px</output></div>
-            <input type="range" id="rNav" min="18" max="64" value="32">
-          </div>
-          <div class="slider">
-            <div class="row"><label data-t="b.hero">شعار الواجهة</label><output id="oHero">76 px</output></div>
-            <input type="range" id="rHero" min="40" max="180" value="76">
-          </div>
-          <div class="slider">
-            <div class="row"><label data-t="b.foot">شعار التذييل</label><output id="oFoot">40 px</output></div>
-            <input type="range" id="rFoot" min="18" max="90" value="40">
-          </div>
-
-          <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:6px">
-            <button class="btn notch" id="bSave" data-t="b.save">حفظ العلامة والشعار</button>
-            <button class="btn ghost sm notch" id="bLogo" data-t="b.newlogo">تغيير الشعار</button>
-            <input type="file" id="logoFile" accept="image/png,image/webp,image/svg+xml" hidden>
-          </div>
-          <p style="font-size:12px;color:var(--steel);margin-top:10px" data-t="b.note">
-            العلامة تُطبَّق على الفيديوهات الجديدة. لإعادة حرقها على فيديو قديم، اضغط «إعادة المعالجة» في المكتبة.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- LEAKS -->
-  <section data-panel="leaks" class="hide">
-    <div class="panel notch">
-      <header><h2 data-t="l.h">بلاغ سرقة جديد</h2><small data-t="l.sub">سجّل الرابط، واحصل على ملف إثبات جاهز للإرسال للمنصة</small></header>
-      <div class="in">
-        <div class="fields" style="grid-template-columns:1fr 180px 200px 190px">
-          <div><label class="f" data-t="l.url">رابط النسخة المسروقة</label><input type="url" id="lkUrl" class="notch" dir="ltr" placeholder="https://..."></div>
-          <div><label class="f" data-t="l.plat">المنصة</label><input type="text" id="lkPlat" class="notch" placeholder="TikTok"></div>
-          <div><label class="f" data-t="l.who">الحساب المنتحل</label><input type="text" id="lkWho" class="notch" dir="ltr"></div>
-          <div><label class="f" data-t="l.vid">الفيديو الأصلي</label><select id="lkVid" class="notch"></select></div>
-        </div>
-        <div style="margin-top:13px"><button class="btn notch" id="lkAdd" data-t="l.add">سجّل البلاغ</button></div>
-      </div>
-    </div>
-    <div class="panel notch">
-      <header><h2 data-t="l.list">البلاغات</h2><small id="lkCount"></small></header>
-      <div class="scroll"><table id="lkTable"><thead><tr>
-        <th data-t="l.url2">الرابط</th><th data-t="l.plat">المنصة</th><th data-t="l.orig">الأصل</th>
-        <th data-t="v.status">الحالة</th><th></th></tr></thead><tbody></tbody></table></div>
-      <div class="empty hide" id="lkEmpty" data-t="l.empty">لا توجد بلاغات — وهذا خبر جيد.</div>
-    </div>
-  </section>
-
-  <!-- ACTIVITY -->
-  <section data-panel="activity" class="hide">
-    <div class="panel notch">
-      <header><h2 data-t="ac.h">أكثر الفيديوهات مشاهدة (٧ أيام)</h2></header>
-      <div class="in" id="topList"></div>
-    </div>
-    <div class="panel notch">
-      <header><h2 data-t="ac.log">آخر أحداث البث</h2><small data-t="ac.live">مباشر</small></header>
-      <div class="in" id="actList" style="padding-top:6px"></div>
-    </div>
-  </section>
-</main>
-</div>
-<div class="toast notch" id="toast"></div>
-
-<script>
-/* ══════ i18n ══════ */
-const T={
-ar:{'g.lib':'المكتبة','g.videos':'الفيديوهات','g.upload':'رفع فيديو','g.brand':'الهوية',
- 'g.wm':'الشعار والعلامة المائية','g.protect':'الحماية','g.leaks':'بلاغات السرقة','g.activity':'سجل النشاط',
- 'a.refresh':'تحديث','v.h':'مكتبة الفيديوهات','v.title':'العنوان','v.cat':'التصنيف','v.dur':'المدة',
- 'v.views':'المشاهدات','v.wm':'العلامة','v.code':'كود التحقق','v.status':'الحالة',
- 'v.empty':'لا توجد فيديوهات بعد. ارفع أول فيديو من قسم «رفع فيديو».',
- 'u.h':'رفع فيديو جديد','u.sub':'أجزاء ٨ ميجابايت · يُستأنف تلقائياً · حتى ٢٠ جيجابايت',
- 'u.drop':'أفلت الملف الأصلي هنا','u.hint':'MP4 / MOV / MKV — الملف الأصلي لا يغادر القرص الخاص أبداً',
- 'u.browse':'تصفّح الملفات','u.tEn':'العنوان (إنجليزي)','u.tAr':'العنوان (عربي)','u.cat':'التصنيف',
- 'u.exp':'الخبير','u.desc':'الوصف','u.start':'ابدأ الرفع','u.cancel':'إلغاء',
- 'b.h':'العلامة المائية المحروقة','b.sub':'تُدمج في كل إطار أثناء التحويل — أي نسخة مسروقة تحمل علامتك',
- 'b.phone':'الرقم الظاهر في العلامة','b.size':'حجم العلامة','b.op':'الشفافية','b.pos':'الموضع',
- 'b.br':'أسفل يمين','b.bl':'أسفل يسار','b.tr':'أعلى يمين','b.tl':'أعلى يسار',
- 'b.nav':'شعار الشريط العلوي','b.hero':'شعار الواجهة','b.foot':'شعار التذييل',
- 'b.save':'حفظ العلامة والشعار','b.newlogo':'تغيير الشعار',
- 'b.note':'العلامة تُطبَّق على الفيديوهات الجديدة. لإعادة حرقها على فيديو قديم، اضغط «إعادة المعالجة» في المكتبة.',
- 'l.h':'بلاغ سرقة جديد','l.sub':'سجّل الرابط، واحصل على ملف إثبات جاهز للإرسال للمنصة',
- 'l.url':'رابط النسخة المسروقة','l.url2':'الرابط','l.plat':'المنصة','l.who':'الحساب المنتحل',
- 'l.vid':'الفيديو الأصلي','l.add':'سجّل البلاغ','l.list':'البلاغات','l.orig':'الأصل',
- 'l.empty':'لا توجد بلاغات — وهذا خبر جيد.',
- 'ac.h':'أكثر الفيديوهات مشاهدة (٧ أيام)','ac.log':'آخر أحداث البث','ac.live':'مباشر',
- k:{total:'إجمالي الفيديوهات',public:'منشور للعامة',proc:'قيد المعالجة',views:'إجمالي المشاهدات',
-    today:'مشاهدات اليوم',storage:'التخزين',leaks:'بلاغات مفتوحة',wm:'يحمل العلامة'},
- st:{published:'منشور',transcoding:'قيد التحويل',queued:'في الطابور',uploading:'جارٍ الرفع',
-     failed:'فشل',draft:'مسودة'},
- act:{publish:'نشر',unpublish:'إخفاء',retry:'إعادة المعالجة',del:'حذف',evi:'ملف إثبات',copy:'نسخ'},
- msg:{saved:'تم الحفظ',pub:'أصبح منشوراً',unpub:'تم إخفاؤه',del:'تم الحذف',queued:'أُضيف للطابور',
-      err:'حدث خطأ',copied:'تم النسخ',need:'اكتب عنواناً أولاً',lk:'تم تسجيل البلاغ'},
- cats:{fund:'الأساسيات',prot:'الحماية',infra:'البنية التحتية',asmt:'التقييم'}},
-en:{'g.lib':'Library','g.videos':'Videos','g.upload':'Upload','g.brand':'Brand',
- 'g.wm':'Logo & watermark','g.protect':'Protection','g.leaks':'Theft reports','g.activity':'Activity',
- 'a.refresh':'Refresh','v.h':'Video library','v.title':'Title','v.cat':'Category','v.dur':'Duration',
- 'v.views':'Views','v.wm':'Mark','v.code':'Verify code','v.status':'Status',
- 'v.empty':'No videos yet. Upload your first from the Upload section.',
- 'u.h':'Upload a video','u.sub':'8 MB chunks · resumes automatically · up to 20 GB',
- 'u.drop':'Drop the master file here','u.hint':'MP4 / MOV / MKV — the original never leaves the private disk',
- 'u.browse':'Browse files','u.tEn':'Title (English)','u.tAr':'Title (Arabic)','u.cat':'Category',
- 'u.exp':'Expert','u.desc':'Description','u.start':'Start upload','u.cancel':'Cancel',
- 'b.h':'Burned-in watermark','b.sub':'Composited into every frame — any stolen copy carries your mark',
- 'b.phone':'Phone shown in the mark','b.size':'Mark size','b.op':'Opacity','b.pos':'Position',
- 'b.br':'Bottom right','b.bl':'Bottom left','b.tr':'Top right','b.tl':'Top left',
- 'b.nav':'Header logo','b.hero':'Hero logo','b.foot':'Footer logo',
- 'b.save':'Save mark and logo','b.newlogo':'Change logo',
- 'b.note':'Applies to new uploads. To burn it into an older video, hit Reprocess in the library.',
- 'l.h':'New theft report','l.sub':'Log the URL and get an evidence pack ready to send to the platform',
- 'l.url':'URL of the stolen copy','l.url2':'URL','l.plat':'Platform','l.who':'Impersonating account',
- 'l.vid':'Original video','l.add':'Log report','l.list':'Reports','l.orig':'Original',
- 'l.empty':'No reports — which is good news.',
- 'ac.h':'Most watched (7 days)','ac.log':'Recent stream events','ac.live':'live',
- k:{total:'Total videos',public:'Public',proc:'Processing',views:'Total views',
-    today:'Views today',storage:'Storage',leaks:'Open reports',wm:'Watermarked'},
- st:{published:'Published',transcoding:'Transcoding',queued:'Queued',uploading:'Uploading',
-     failed:'Failed',draft:'Draft'},
- act:{publish:'Publish',unpublish:'Hide',retry:'Reprocess',del:'Delete',evi:'Evidence',copy:'Copy'},
- msg:{saved:'Saved',pub:'Now public',unpub:'Hidden',del:'Deleted',queued:'Queued',
-      err:'Something went wrong',copied:'Copied',need:'Add a title first',lk:'Report logged'},
- cats:{fund:'Fundamentals',prot:'Protection',infra:'Infrastructure',asmt:'Assessment'}}};
-
-let L='ar', DATA={stats:{},videos:[],leaks:[],activity:[],top:[]}, view='videos';
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const t=k=>T[L][k]!==undefined?T[L][k]:k;
-const num=n=>L==='ar'?String(n).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]):String(n);
-const csrf=()=>document.querySelector('meta[name=csrf-token]').content||'';
-const mmss=s=>`${String(Math.floor((s||0)/60)).padStart(2,'0')}:${String((s||0)%60).padStart(2,'0')}`;
-
-function toast(m,bad){const e=$('#toast');e.textContent=m;e.classList.toggle('bad',!!bad);
-  e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200)}
-
-async function api(url,opt={}){
-  const o={headers:{'Accept':'application/json','X-CSRF-TOKEN':csrf()},...opt};
-  if(opt.json){o.headers['Content-Type']='application/json';o.body=JSON.stringify(opt.json)}
-  const r=await fetch(url,o);
-  if(!r.ok){let m=r.status;try{m=(await r.json()).message||m}catch{}throw new Error(m)}
-  return r.status===204?null:r.json();
-}
-
-/* ══════ load everything ══════ */
-async function load(){
-  $('#liveTag').innerHTML='<span class="spin"></span>';
-  try{
-    DATA=await api('/admin/api/overview');
-    renderAll();
-    $('#liveTag').textContent=L==='ar'?'محدّث':'live';
-    $('#liveTag').className='tag ok notch';
-  }catch(e){
-    $('#liveTag').textContent=T[L].msg.err;
-    $('#liveTag').className='tag bad notch';
-    toast(T[L].msg.err+' — '+e.message,true);
-  }
-}
-
-function renderAll(){renderKpis();renderVideos();renderLeaks();renderActivity();fillSelects()}
-
-function renderKpis(){
-  const s=DATA.stats||{},K=T[L].k;
-  const cards=[
-    [K.total,num(s.total||0),''],
-    [K.public,num(s.public||0),'',s.public?'':'w'],
-    [K.proc,num(s.processing||0),'',s.processing?'w':''],
-    [K.wm,num(s.watermarked||0)+' / '+num(s.total||0),''],
-    [K.views,num(s.views_total||0),''],
-    [K.today,num(s.views_today||0),''],
-    [K.storage,num(s.storage_gb||0)+(L==='ar'?' ج.ب':' GB'),''],
-    [K.leaks,num(s.leaks_open||0),'',s.leaks_open?'b':''],
-  ];
-  $('#kpis').innerHTML=cards.map(c=>
-    `<div class="kpi notch"><span>${c[0]}</span><b>${c[1]}</b><i class="${c[3]||''}">${c[2]}</i></div>`).join('');
-}
-
-function renderVideos(){
-  const rows=DATA.videos||[];
-  $('#vCount').textContent=num(rows.length)+' '+(L==='ar'?'فيديو':'videos');
-  $('#vEmpty').classList.toggle('hide',rows.length>0);
-  $('#vTable').classList.toggle('hide',rows.length===0);
-
-  $('#vTable tbody').innerHTML=rows.map(v=>{
-    const st=v.status==='published'&&v.is_public?'ok':v.status==='failed'?'bad':
-             ['queued','transcoding','uploading'].includes(v.status)?'run':'wait';
-    const label=v.status==='published'&&!v.is_public?(L==='ar'?'جاهز — غير منشور':'Ready — hidden')
-      :(T[L].st[v.status]||v.status)+(v.status==='transcoding'?' '+num(v.progress)+'%':'');
-    const A=T[L].act;
-    return `<tr data-id="${v.id}">
-      <td><b>${(L==='ar'&&v.title_ar)?v.title_ar:v.title}</b></td>
-      <td>${T[L].cats[v.category]||v.category}</td>
-      <td><span class="mono">${mmss(v.duration)}</span></td>
-      <td>${num(v.views||0)}</td>
-      <td>${v.watermark_burned?'<span class="tag ok notch">✓</span>':'<span class="tag wait notch">—</span>'}</td>
-      <td><span class="mono">${v.verify_code||'—'}</span></td>
-      <td><span class="tag ${st} notch">${label}</span></td>
-      <td><div class="acts">
-        ${v.status==='published'?(v.is_public
-          ? `<button class="btn ghost sm notch" data-act="unpublish">${A.unpublish}</button>`
-          : `<button class="btn ok sm notch" data-act="publish">${A.publish}</button>`):''}
-        ${v.master_ok!==false&&v.status!=='uploading'?`<button class="btn ghost sm notch" data-act="retry">${A.retry}</button>`:''}
-        <button class="btn bad sm notch" data-act="del">${A.del}</button>
-      </div></td></tr>`;
-  }).join('');
-}
-
-$('#vTable').addEventListener('click',async e=>{
-  const b=e.target.closest('[data-act]'); if(!b)return;
-  const id=b.closest('tr').dataset.id, act=b.dataset.act;
-  b.disabled=true;
-  try{
-    if(act==='del'){
-      if(!confirm(L==='ar'?'حذف الفيديو نهائياً؟':'Delete permanently?')){b.disabled=false;return}
-      await api(`/admin/api/videos/${id}`,{method:'DELETE'}); toast(T[L].msg.del);
-    } else {
-      await api(`/admin/api/videos/${id}/${act}`,{method:'POST'});
-      toast(act==='publish'?T[L].msg.pub:act==='unpublish'?T[L].msg.unpub:T[L].msg.queued);
-    }
-    load();
-  }catch(err){toast(T[L].msg.err+' — '+err.message,true);b.disabled=false}
-});
-
-function renderLeaks(){
-  const rows=DATA.leaks||[];
-  $('#lkCount').textContent=num(rows.length);
-  $('#lkEmpty').classList.toggle('hide',rows.length>0);
-  $('#lkTable').classList.toggle('hide',rows.length===0);
-  const S={open:'bad',reported:'warn',removed:'ok',ignored:'wait'};
-  $('#lkTable tbody').innerHTML=rows.map(r=>`
-    <tr data-id="${r.id}">
-      <td><a href="${r.url}" target="_blank" rel="noopener" class="mono">${r.url.slice(0,52)}</a></td>
-      <td>${r.platform||'—'}</td>
-      <td>${r.video?r.video.title:'—'}</td>
-      <td><span class="tag ${S[r.status]} notch">${r.status}</span></td>
-      <td><div class="acts">
-        <button class="btn ghost sm notch" data-evi>${T[L].act.evi}</button>
-        <button class="btn ok sm notch" data-done>✓</button>
-      </div></td></tr>`).join('');
-}
-
-$('#lkTable').addEventListener('click',async e=>{
-  const row=e.target.closest('tr'); if(!row)return;
-  const id=row.dataset.id;
-  if(e.target.closest('[data-evi]')){
-    try{
-      const ev=await api(`/admin/api/leaks/${id}/evidence`);
-      await navigator.clipboard.writeText(ev.statement+'\n\n'+JSON.stringify(ev,null,2));
-      toast(T[L].msg.copied);
-    }catch(err){toast(T[L].msg.err,true)}
-  }
-  if(e.target.closest('[data-done]')){
-    try{await api(`/admin/api/leaks/${id}`,{method:'PATCH',json:{status:'removed'}});load()}
-    catch{toast(T[L].msg.err,true)}
-  }
-});
-
-$('#lkAdd').onclick=async()=>{
-  const url=$('#lkUrl').value.trim(); if(!url)return;
-  try{
-    await api('/admin/api/leaks',{method:'POST',json:{
-      url, platform:$('#lkPlat').value||null, impersonator:$('#lkWho').value||null,
-      video_id:$('#lkVid').value||null}});
-    $('#lkUrl').value=$('#lkPlat').value=$('#lkWho').value='';
-    toast(T[L].msg.lk); load();
-  }catch(e){toast(T[L].msg.err+' — '+e.message,true)}
-};
-
-function renderActivity(){
-  const top=DATA.top||[];
-  $('#topList').innerHTML=top.length?top.map(r=>`
-    <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(91,140,255,.07)">
-      <span>${r.title}</span><span class="mono" style="margin-inline-start:auto">${num(r.hits)}</span></div>`).join('')
-    :`<div class="empty">—</div>`;
-  const D={key:'k',manifest:'m',flagged:'f',segment:'m',denied:'f'};
-  $('#actList').innerHTML=(DATA.activity||[]).map(a=>`
-    <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(91,140,255,.07);font-size:12.5px">
-      <span class="tag ${a.type==='flagged'?'bad':'run'} notch">${a.type}</span>
-      <span class="mono">${a.ip}</span>
-      <span class="mono" style="margin-inline-start:auto;color:#4A5570">${(a.created_at||'').slice(5,16)}</span>
-    </div>`).join('')||`<div class="empty">—</div>`;
-}
-
-function fillSelects(){
-  const cats=Object.entries(T[L].cats).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
-  $('#cat').innerHTML=cats;
-  $('#lkVid').innerHTML='<option value="">—</option>'+
-    (DATA.videos||[]).map(v=>`<option value="${v.id}">${v.title}</option>`).join('');
-}
-
-/* ══════ views ══════ */
-$('#nav').addEventListener('click',e=>{
-  const b=e.target.closest('[data-view]'); if(!b)return;
-  view=b.dataset.view;
-  $$('#nav button').forEach(x=>x.classList.toggle('on',x===b));
-  $$('[data-panel]').forEach(p=>p.classList.toggle('hide',p.dataset.panel!==view));
-  $('#viewTitle').textContent=b.textContent.trim();
-  $('#side').classList.remove('open');
-});
-$('#mbtn').onclick=()=>$('#side').classList.toggle('open');
-$('#refresh').onclick=load;
-
-/* ══════ watermark composer ══════
-   Drawn here, uploaded as a PNG, burned by ffmpeg. Composing in the browser
-   means what you see is exactly what gets burned, and the server never needs
-   a font file installed. */
-const cv=$('#wmCanvas'), ctx=cv.getContext('2d');
-const logoImg=new Image(); logoImg.crossOrigin='anonymous'; logoImg.src='/assets/memo-logo.png';
-logoImg.onload=drawWm;
-
-function drawWm(){
-  const W=cv.width,H=cv.height;
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#0b1020'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='rgba(91,140,255,.10)'; ctx.fillRect(0,0,W,H);
-
-  const scale=+$('#rSize').value/100, op=+$('#rOp').value/100, pos=$('#wmPos').value;
-  const markW=W*scale, ratio=logoImg.width?logoImg.height/logoImg.width:0.5;
-  const markH=markW*ratio;
-  const phone=$('#wmPhone').value.trim();
-  const fs=Math.max(9,markW*0.17);
-  const blockH=markH+fs*1.5, pad=W*0.035;
-
-  const x=pos.endsWith('r')?W-markW-pad:pad;
-  const y=pos.startsWith('b')?H-blockH-pad:pad;
-
-  ctx.globalAlpha=op;
-  if(logoImg.complete&&logoImg.width) ctx.drawImage(logoImg,x,y,markW,markH);
-  if(phone){
-    ctx.font=`600 ${fs}px 'JetBrains Mono',monospace`;
-    ctx.textAlign=pos.endsWith('r')?'right':'left';
-    ctx.fillStyle='#fff';
-    ctx.shadowColor='rgba(0,0,0,.85)'; ctx.shadowBlur=6;
-    ctx.fillText(phone, pos.endsWith('r')?x+markW:x, y+markH+fs*1.15);
-    ctx.shadowBlur=0;
-  }
-  ctx.globalAlpha=1;
-
-  $('#oSize').textContent=$('#rSize').value+'%';
-  $('#oOp').textContent=$('#rOp').value+'%';
-}
-
-/* Export just the mark on transparency — that is what ffmpeg overlays. */
-function exportWm(){
-  return new Promise(res=>{
-    const scale=+$('#rSize').value/100, op=+$('#rOp').value/100;
-    const W=800, markW=W*scale/0.4;
-    const ratio=logoImg.width?logoImg.height/logoImg.width:0.5;
-    const fs=Math.max(12,markW*0.17), markH=markW*ratio;
-    const phone=$('#wmPhone').value.trim();
-
-    const c=document.createElement('canvas');
-    c.width=Math.ceil(markW); c.height=Math.ceil(markH+(phone?fs*1.5:0));
-    const g=c.getContext('2d');
-    g.globalAlpha=op;
-    if(logoImg.complete&&logoImg.width) g.drawImage(logoImg,0,0,markW,markH);
-    if(phone){
-      g.font=`600 ${fs}px monospace`; g.textAlign='right'; g.fillStyle='#fff';
-      g.shadowColor='rgba(0,0,0,.9)'; g.shadowBlur=8;
-      g.fillText(phone,markW,markH+fs*1.15);
-    }
-    c.toBlob(res,'image/png');
-  });
-}
-
-['rSize','rOp','wmPos','wmPhone'].forEach(id=>{
-  $('#'+id).addEventListener('input',drawWm);
-  $('#'+id).addEventListener('change',drawWm);
-});
-
-const SZ=[['rNav','oNav','--logo-nav'],['rHero','oHero','--logo-hero'],['rFoot','oFoot','--logo-foot']];
-function syncSizes(){SZ.forEach(([r,o,v])=>{
-  const px=$('#'+r).value;
-  document.documentElement.style.setProperty(v,px+'px');
-  $('#'+o).textContent=px+(L==='ar'?' بكسل':' px');
-})}
-SZ.forEach(([r])=>$('#'+r).addEventListener('input',syncSizes));
-
-let newLogo=null;
-$('#bLogo').onclick=()=>$('#logoFile').click();
-$('#logoFile').onchange=()=>{
-  const f=$('#logoFile').files[0]; if(!f)return;
-  newLogo=f; const u=URL.createObjectURL(f);
-  $('#logoSide').src=u; logoImg.src=u;
-};
-
-$('#bSave').onclick=async()=>{
-  const fd=new FormData();
-  fd.append('watermark',await exportWm(),'watermark.png');
-  fd.append('watermark_phone',$('#wmPhone').value.trim());
-  fd.append('logo_nav',$('#rNav').value);
-  fd.append('logo_hero',$('#rHero').value);
-  fd.append('logo_foot',$('#rFoot').value);
-  if(newLogo)fd.append('logo',newLogo);
-  try{
-    await api('/admin/api/brand',{method:'POST',body:fd});
-    toast(T[L].msg.saved); newLogo=null;
-  }catch(e){toast(T[L].msg.err+' — '+e.message,true)}
-};
-
-/* ══════ chunked upload ══════ */
-const CHUNK=8*1024*1024;
-let picked=null,aborted=false;
-const drop=$('#drop');
-$('#browse').onclick=()=>$('#file').click();
-['dragenter','dragover'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('hot')}));
-['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('hot')}));
-drop.addEventListener('drop',ev=>pick(ev.dataTransfer.files[0]));
-$('#file').onchange=()=>pick($('#file').files[0]);
-
-function pick(f){
-  if(!f)return;picked=f;$('#go').disabled=false;
-  $('#hint').textContent=`${f.name} · ${(f.size/1073741824).toFixed(2)} GB · ${Math.ceil(f.size/CHUNK)} chunks`;
-  if(!$('#tEn').value)$('#tEn').value=f.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ');
-}
-$('#abort').onclick=()=>{aborted=true;$('#abort').classList.add('hide');$('#go').disabled=false};
-
-$('#go').onclick=async()=>{
-  if(!picked)return;
-  const title=$('#tEn').value.trim();
-  if(!title){toast(T[L].msg.need,true);return}
-  aborted=false;$('#go').disabled=true;$('#abort').classList.remove('hide');
-
-  const card=document.createElement('div');
-  card.className='job notch';
-  card.innerHTML=`<div class="r"><b>${title}</b><span data-s>…</span></div><div class="pbar"><i data-p></i></div>`;
-  $('#queue').prepend(card);
-  const st=card.querySelector('[data-s]'),pb=card.querySelector('[data-p]');
-
-  try{
-    const open=await api('/admin/uploads',{method:'POST',json:{
-      filename:picked.name,size_bytes:picked.size,title,
-      title_ar:$('#tAr').value||null,description:$('#desc').value||null,
-      category:$('#cat').value,expert_id:$('#exp').value||null}});
-
-    let missing=Array.from({length:open.total_chunks},(_,i)=>i),sent=0;
-    for(let pass=0;pass<3&&missing.length;pass++){
-      for(const i of missing){
-        if(aborted){st.textContent=T[L]['u.cancel'];return}
-        await fetch(`/admin/uploads/${open.uuid}/${i}?video_id=${open.video_id}`,{method:'PUT',
-          headers:{'X-CSRF-TOKEN':csrf(),'Content-Type':'application/octet-stream'},
-          body:picked.slice(i*CHUNK,Math.min(picked.size,(i+1)*CHUNK))});
-        sent++;
-        const p=Math.round(sent/open.total_chunks*100);
-        pb.style.insetInlineEnd=(100-p)+'%';
-        st.textContent=(L==='ar'?'جارٍ الرفع ':'Uploading ')+num(p)+'%';
-      }
-      missing=(await api(`/admin/uploads/${open.uuid}`)).missing;
+    public function index(): JsonResponse
+    {
+        return response()->json(
+            Video::with(['expert','category'])
+                ->where('is_public', true)
+                ->where('status', 'published')
+                ->orderBy('position')
+                ->get()
+                ->map->forPublic()
+                ->values()
+        );
     }
 
-    st.textContent=L==='ar'?'جارٍ التجميع…':'Assembling…';
-    await api(`/admin/uploads/${open.uuid}/complete?video_id=${open.video_id}`,
-      {method:'POST',json:{video_id:open.video_id}});
-    st.textContent=L==='ar'?'في طابور التحويل':'Queued for transcode';
-    poll(open.video_id,st,pb);
-    load();
-  }catch(e){
-    st.textContent=(L==='ar'?'فشل — ':'Failed — ')+e.message;
-    card.style.borderColor='rgba(255,77,109,.5)';
-  }finally{$('#go').disabled=false;$('#abort').classList.add('hide')}
-};
+    /** Only tracks that actually contain something public. */
+    public function categories(): JsonResponse
+    {
+        return response()->json(
+            Category::where('is_active', true)
+                ->withCount(['videos' => fn ($q) => $q->where('is_public', true)->where('status', 'published')])
+                ->orderBy('position')
+                ->get()
+                ->filter(fn ($c) => $c->videos_count > 0)
+                ->map(fn ($c) => [
+                    'id' => $c->id, 'slug' => $c->slug,
+                    'name' => $c->name, 'name_ar' => $c->name_ar,
+                    'count' => $c->videos_count,
+                ])
+                ->values()
+        );
+    }
 
-function poll(id,st,pb){
-  const timer=setInterval(async()=>{
-    try{
-      const v=await api(`/admin/api/videos/${id}`);
-      pb.style.insetInlineEnd=(100-(v.progress||0))+'%';
-      if(v.status==='published'){
-        st.textContent=(L==='ar'?'جاهز · ':'Ready · ')+(v.watermark_burned?(L==='ar'?'بعلامة مائية':'watermarked'):'');
-        clearInterval(timer);load();
-      } else if(v.status==='failed'){
-        st.textContent=(L==='ar'?'فشل التحويل':'Transcode failed');clearInterval(timer);load();
-      } else {
-        st.textContent=(L==='ar'?'جارٍ التحويل ':'Transcoding ')+num(v.progress||0)+'%';
-      }
-    }catch{clearInterval(timer)}
-  },3000);
+    public function open(Request $request, string $slug): JsonResponse
+    {
+        $video = Video::with(['expert','category'])
+            ->where('slug', $slug)->where('is_public', true)->firstOrFail();
+
+        abort_unless($video->isPlayable(), 404);
+
+        $guestKey = $request->session()->get('guest_key');
+        if (! $guestKey) {
+            $guestKey = (string) Str::uuid();
+            $request->session()->put('guest_key', $guestKey);
+        }
+
+        $session = $this->guard->issueGuest($guestKey, $video, $request);
+        $this->countView($request, $video);
+
+        return response()->json([
+            'video'    => $video->forPublic(),
+            'manifest' => URL::temporarySignedRoute(
+                'stream.manifest',
+                now()->addSeconds(PlaybackGuard::GRANT_TTL),
+                ['video' => $video->id, 'token' => $session->token]
+            ),
+            'trace'  => strtoupper(substr(md5($session->token), 0, 8)),
+            'verify' => route('verify.show', $video->verify_code),
+        ]);
+    }
+
+    /** One row per visitor per video per day. Enough for counts, no tracking. */
+    private function countView(Request $request, Video $video): void
+    {
+        $hash = hash('sha256', $request->ip().'|'.$request->userAgent().'|'.now()->toDateString());
+
+        if (DB::table('video_views')->where('video_id', $video->id)->where('visitor_hash', $hash)->exists()) {
+            return;
+        }
+
+        DB::table('video_views')->insert([
+            'video_id'     => $video->id,
+            'visitor_hash' => $hash,
+            'referer'      => Str::limit((string) $request->header('referer'), 290, ''),
+            'created_at'   => now(),
+        ]);
+
+        $video->increment('views');
+    }
 }
-
-/* ══════ language ══════ */
-function applyLang(l){
-  L=l;
-  document.documentElement.lang=l;
-  document.documentElement.dir=l==='ar'?'rtl':'ltr';
-  $$('[data-t]').forEach(el=>{const v=T[l][el.dataset.t];if(v!==undefined)el.textContent=v});
-  $$('.lang button').forEach(b=>b.classList.toggle('on',b.dataset.lang===l));
-  const active=document.querySelector('#nav button.on');
-  if(active)$('#viewTitle').textContent=active.textContent.trim();
-  syncSizes();renderAll();
-}
-$$('.lang button').forEach(b=>b.onclick=()=>applyLang(b.dataset.lang));
-
-/* boot */
-document.querySelector('meta[name=csrf-token]').content =
-  document.querySelector('meta[name=csrf-token]').content || '';
-applyLang('ar');
-syncSizes();
-drawWm();
-load();
-setInterval(()=>{if(!document.hidden)load()},20000);
-</script>
-</body>
-</html>
