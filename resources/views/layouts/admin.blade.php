@@ -49,42 +49,44 @@
 
     @yield('content')
   </main>
-</div>
 
-<div class="toast notch" id="toast"></div>
+  <div class="toast notch" id="toast"></div>
 
-{{-- Edit video modal (videos page) --}}
-<div class="modal" id="editModal">
-  <div class="mbox notch">
-    <header>
-      <h2>{{ __('memo.admin.edit.title') }}</h2>
-      <button class="mx" id="editClose" type="button">✕</button>
-    </header>
-    <div class="in">
-      <input type="hidden" id="eId">
-      <div class="ef">
-        <div><label class="f">{{ __('memo.admin.upload.t_en') }}</label><input type="text" id="eTitle" class="notch"></div>
-        <div><label class="f">{{ __('memo.admin.upload.t_ar') }}</label><input type="text" id="eTitleAr" class="notch" dir="rtl"></div>
-        <div><label class="f">{{ __('memo.admin.edit.desc_en') }}</label><textarea id="eDesc" class="notch" rows="2"></textarea></div>
-        <div><label class="f">{{ __('memo.admin.edit.desc_ar') }}</label><textarea id="eDescAr" class="notch" rows="2" dir="rtl"></textarea></div>
-        <div><label class="f">{{ __('memo.admin.upload.cat') }}</label><select id="eCat" class="notch"></select></div>
-        <div><label class="f">{{ __('memo.admin.edit.verify_link') }}</label>
-          <a id="eVerify" class="mono" href="#" target="_blank" rel="noopener" style="display:block;padding-top:10px"></a></div>
-      </div>
-      <div class="poster-box">
-        <img id="ePoster" src="" alt="">
-        <div>
-          <label class="f">{{ __('memo.admin.edit.poster') }}</label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn ghost sm notch" id="ePosterBtn" type="button">{{ __('memo.admin.edit.upload_poster') }}</button>
-            <button class="btn ghost sm notch" id="ePosterReset" type="button">{{ __('memo.admin.edit.reset_poster') }}</button>
-            <input type="file" id="ePosterFile" accept="image/jpeg,image/png,image/webp" hidden>
+  {{-- Must stay inside .shell so admin modal/poster CSS applies --}}
+  <div class="modal" id="editModal">
+    <div class="mbox notch edit-mbox">
+      <header>
+        <h2>{{ __('memo.admin.edit.title') }}</h2>
+        <button class="mx" id="editClose" type="button">✕</button>
+      </header>
+      <div class="in">
+        <input type="hidden" id="eId">
+        <div class="ef">
+          <div><label class="f">{{ __('memo.admin.upload.t_en') }}</label><input type="text" id="eTitle" class="notch"></div>
+          <div><label class="f">{{ __('memo.admin.upload.t_ar') }}</label><input type="text" id="eTitleAr" class="notch" dir="rtl"></div>
+          <div><label class="f">{{ __('memo.admin.edit.desc_en') }}</label><textarea id="eDesc" class="notch" rows="2"></textarea></div>
+          <div><label class="f">{{ __('memo.admin.edit.desc_ar') }}</label><textarea id="eDescAr" class="notch" rows="2" dir="rtl"></textarea></div>
+          <div><label class="f">{{ __('memo.admin.upload.cat') }}</label><select id="eCat" class="notch"></select></div>
+          <div class="ef-verify">
+            <label class="f">{{ __('memo.admin.edit.verify_link') }}</label>
+            <a id="eVerify" class="mono" href="#" target="_blank" rel="noopener"></a>
           </div>
         </div>
-      </div>
-      <div style="display:flex;gap:9px;margin-top:8px">
-        <button class="btn notch" id="eSave" type="button">{{ __('memo.admin.edit.save') }}</button>
-        <button class="btn ghost notch" id="eCancel" type="button">{{ __('memo.admin.edit.cancel') }}</button>
+        <div class="poster-box">
+          <img id="ePoster" src="" alt="">
+          <div class="poster-actions">
+            <label class="f">{{ __('memo.admin.edit.poster') }}</label>
+            <div class="acts">
+              <button class="btn ghost sm notch" id="ePosterBtn" type="button">{{ __('memo.admin.edit.upload_poster') }}</button>
+              <button class="btn ghost sm notch" id="ePosterReset" type="button">{{ __('memo.admin.edit.reset_poster') }}</button>
+              <input type="file" id="ePosterFile" accept="image/jpeg,image/png,image/webp" hidden>
+            </div>
+          </div>
+        </div>
+        <div class="edit-actions">
+          <button class="btn notch" id="eSave" type="button">{{ __('memo.admin.edit.save') }}</button>
+          <button class="btn ghost notch" id="eCancel" type="button">{{ __('memo.admin.edit.cancel') }}</button>
+        </div>
       </div>
     </div>
   </div>

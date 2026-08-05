@@ -244,29 +244,53 @@ body.verify-page .row b{margin-inline-start:auto;font-weight:500}
 .hide{display:none!important}
 
 /* ============ admin extras: edit modal, drag, categories, thumbs ============ */
-.shell .modal{position:fixed;inset:0;z-index:150;background:rgba(2,4,10,.88);backdrop-filter:blur(6px);display:none;place-items:center;padding:18px}
-.shell .modal.on{display:grid}
-.shell .mbox{--notch:16px;width:min(640px,100%);background:var(--shard);border:1px solid var(--line);max-height:90vh;overflow:auto;position:relative}
-.shell .mbox>header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
-.shell .mbox>header h2{font-size:15px}
-.shell .mbox .mx{margin-inline-start:auto;width:32px;height:32px;border:1px solid var(--line);border-radius:50%;font-size:16px}
-.shell .mbox .in{padding:18px}
-.shell .ef{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-@media(max-width:640px){.shell .ef{grid-template-columns:1fr}}
-.shell .poster-box{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin:14px 0}
-.shell .poster-box img{width:96px;height:96px;object-fit:cover;background:#060B1C;border:1px solid var(--line)}
+#editModal{position:fixed;inset:0;z-index:150;background:rgba(2,4,10,.88);backdrop-filter:blur(6px);display:none;place-items:center;padding:clamp(10px,3vw,18px)}
+#editModal.on{display:grid}
+#editModal .edit-mbox{--notch:16px;width:min(640px,100%);max-width:100%;background:var(--shard);border:1px solid var(--line);max-height:min(90vh,100%);overflow:auto;position:relative;box-sizing:border-box}
+#editModal .edit-mbox>header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--shard);z-index:1}
+#editModal .edit-mbox>header h2{font-size:15px;min-width:0}
+#editModal .mx{margin-inline-start:auto;width:32px;height:32px;flex-shrink:0;border:1px solid var(--line);border-radius:50%;font-size:16px}
+#editModal .in{padding:18px;box-sizing:border-box}
+#editModal .ef{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+#editModal .ef>div{min-width:0}
+#editModal .ef-verify a{display:block;padding-top:8px;overflow-wrap:anywhere;word-break:break-all}
+#editModal .poster-box{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin:14px 0;max-width:100%}
+#editModal #ePoster,#editModal .poster-box img{
+  width:96px;height:96px;max-width:min(96px,30vw);max-height:min(96px,30vw);
+  object-fit:cover;background:#060B1C;border:1px solid var(--line);flex-shrink:0;display:block
+}
+#editModal .poster-actions{flex:1;min-width:min(100%,160px)}
+#editModal .edit-actions{display:flex;gap:9px;margin-top:8px;flex-wrap:wrap}
+@media(max-width:640px){
+  #editModal .ef{grid-template-columns:1fr}
+  #editModal .in{padding:14px}
+  #editModal .edit-mbox>header{padding:12px 14px}
+  #editModal #ePoster,#editModal .poster-box img{width:72px;height:72px}
+}
 .shell .drag{cursor:grab;color:var(--steel);padding:0 6px;user-select:none;font-size:14px;letter-spacing:-1px}
 .shell .drag:active{cursor:grabbing}
 .shell tr.dragging{opacity:.45}
 .shell tr.drag-over td{border-top:2px solid var(--volt)}
-.shell .vthumb{width:44px;height:44px;object-fit:cover;background:#060B1C;border:1px solid var(--line);flex-shrink:0}
-.shell .vtitle{display:flex;align-items:center;gap:10px}
-.shell .cat-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(91,140,255,.07)}
+.shell .vthumb{width:44px;height:44px;max-width:44px;object-fit:cover;background:#060B1C;border:1px solid var(--line);flex-shrink:0}
+.shell .vtitle{display:flex;align-items:center;gap:10px;min-width:0}
+.shell .vtitle b{overflow:hidden;text-overflow:ellipsis}
+.shell .cat-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(91,140,255,.07);flex-wrap:wrap}
 .shell .cat-row:hover{background:rgba(27,77,255,.04)}
 .shell .cat-row .nm{flex:1;min-width:0}
-.shell .cat-row input{margin:0}
+.shell .cat-row input{margin:0;max-width:100%}
 .shell .lang a,.shell .lang button{padding:6px 11px;color:var(--steel);display:inline-block}
 .shell .lang a.on,.shell .lang button.on{background:var(--volt);color:#fff}
+.shell .scroll{max-width:100%}
+.shell table{max-width:100%}
+.shell .fields{max-width:100%}
+.shell .wmgrid{max-width:100%}
+.shell #wmCanvas{max-width:100%;height:auto}
 header .lang{--nc:7px;display:flex;border:1px solid var(--line);font-family:var(--fm);font-size:11px;clip-path:polygon(0 0,calc(100% - var(--nc)) 0,100% var(--nc),100% 100%,var(--nc) 100%,0 calc(100% - var(--nc)))}
 header .lang a{padding:6px 11px;color:var(--steel)}
 header .lang a.on{background:var(--volt);color:#fff}
+@media(max-width:640px){
+  .shell main{padding:16px 12px 48px}
+  .shell .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .shell .fields{grid-template-columns:1fr!important}
+  .shell .wmgrid{grid-template-columns:1fr}
+}
