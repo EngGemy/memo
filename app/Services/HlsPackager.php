@@ -87,17 +87,25 @@ class HlsPackager
                 // graph. A second -i input makes this ffmpeg build fail in the
                 // auto-scaler, and chaining movie= after a comma makes it
                 // complain about too many inputs - it has to start its own chain.
+                // Labels require -filter_complex (not -vf) on ffmpeg 5.x.
                 $markW = max(48, (int) round($rung['width'] * self::MARK_FRACTION));
                 $inset = max(10, (int) round($rung['width'] * 0.035));
                 $png = str_replace(['\\', ':'], ['/', '\\:'], $pngPath);
 
-                $args[] = '-vf';
-                $args[] = "movie={$png},scale={$markW}:-2,format=rgba[wm];"
-                        ."[in]scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1[base];"
-                        ."[base][wm]overlay=W-w-{$inset}:H-h-{$inset},format=yuv420p[out]";
+                array_push($args,
+                    '-filter_complex',
+                    "movie={$png},scale={$markW}:-2,format=rgba[wm];"
+                    ."[0:v]scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1[base];"
+                    ."[base][wm]overlay=W-w-{$inset}:H-h-{$inset},format=yuv420p[vout]",
+                    '-map', '[vout]',
+                    '-map', '0:a?'
+                );
             } else {
-                $args[] = '-vf';
-                $args[] = "scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1,format=yuv420p";
+                array_push($args,
+                    '-vf', "scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1,format=yuv420p",
+                    '-map', '0:v:0',
+                    '-map', '0:a?'
+                );
             }
 
             $gop = (int) round(round($rung['fps']) * self::SEGMENT_SECONDS);
