@@ -89,7 +89,7 @@ class HlsPackager
                 $args[] = $watermark;
                 $args[] = '-filter_complex';
                 $args[] = "[0:v]scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1[base];"
-                        . "[1:v]scale={$markW}:-1[mark];"
+                        . "[1:v]scale={$markW}:-2[mark];"
                         . "[base][mark]overlay=W-w-{$inset}:H-h-{$inset}:format=auto,format=yuv420p[v]";
                 $args[] = '-map';
                 $args[] = '[v]';
