@@ -17,7 +17,10 @@ class Setting extends Model
         'logo_path' => 'assets/memo-logo.png',
         'logo_nav'  => 32,
         'logo_hero' => 76,
-        'logo_foot' => 40,
+        'logo_foot'       => 40,
+        'watermark_path'  => null,     // private disk, composed in the dashboard
+        'watermark_phone' => '01095236175',
+        'brand_name'      => 'MEMO STORE',
     ];
 
     public static function brand(): array
