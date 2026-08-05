@@ -84,23 +84,19 @@ class HlsPackager
             $args = [$this->ffmpeg, '-y', '-i', $masterAbs];
 
             if ($watermark) {
-                // This ffmpeg build rejects multi-input filter graphs, so the
-                // mark is drawn as text rather than overlaid as an image. For
-                // anti-impersonation that is arguably stronger: a phone number
-                // is unambiguous proof of origin and cannot be mistaken for
-                // generic branding a thief could claim as their own.
-                $fs    = max(14, (int) round($rung['width'] * 0.028));
-                $inset = max(10, (int) round($rung['width'] * 0.030));
-                $label = str_replace(':', '\:', $watermarkText);
+                // movie= loads the PNG as a source node inside a single-input
+                // graph. A second -i input makes this ffmpeg build fail in the
+                // auto-scaler, and chaining movie= after a comma makes it
+                // complain about too many inputs - it has to start its own chain.
+                $markW = max(48, (int) round($rung['width'] * self::MARK_FRACTION));
+                $inset = max(10, (int) round($rung['width'] * 0.035));
+                $png   = str_replace(['\', ':'], ['/', '\:'], $watermark);
 
                 $args[] = '-vf';
-                $args[] = "scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1,"
-                        . "drawtext=text='{$label}':x=w-tw-{$inset}:y=h-th-{$inset}"
-                        . ":fontsize={$fs}:fontcolor=white@0.82:box=1:boxcolor=black@0.35:boxborderw=8,"
-                        . "format=yuv420p";
-            } else {
-                $args[] = '-vf';
-                $args[] = "scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1,format=yuv420p";
+                $args[] = "movie={$png},scale={$markW}:-2,format=rgba[wm];"
+                        . "[in]scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1[base];"
+                        . "[base][wm]overlay=W-w-{$inset}:H-h-{$inset},format=yuv420p[out]";
+            } else {]}:flags=lanczos,setsar=1,format=yuv420p";
             }
 
             $gop = (int) round(round($rung['fps']) * self::SEGMENT_SECONDS);
