@@ -22,7 +22,7 @@ class Setting extends Model
 
     public static function brand(): array
     {
-        return Cache::rememberForever('brand', function () {
+        return Cache::rememberForever('brand.v2', function () {
             return array_merge(self::DEFAULTS, static::query()
                 ->whereIn('key', array_keys(self::DEFAULTS))
                 ->pluck('value', 'key')
@@ -36,6 +36,6 @@ class Setting extends Model
             static::updateOrCreate(['key' => $k], ['value' => $v]);
         }
 
-        Cache::forget('brand');
+        Cache::forget('brand.v2');
     }
 }

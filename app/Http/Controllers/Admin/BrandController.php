@@ -30,8 +30,8 @@ class BrandController extends Controller
     public function show(): JsonResponse
     {
         $brand = Setting::brand();
-        $brand['watermark_ready'] = (bool) $brand['watermark_path'];
-        unset($brand['watermark_path']);
+        $brand['watermark_ready'] = ! empty($brand['watermark_path']);
+        unset($brand['watermark_path']);   // never expose the private path
 
         return response()->json($brand);
     }
