@@ -68,15 +68,13 @@ Route::middleware(['auth','can:manage-content'])->prefix('admin')->name('admin.'
 
 /*
 |--------------------------------------------------------------------------
-| Local development only - delete before deploying
+| Authentication
 |--------------------------------------------------------------------------
+| Login only. There is no registration route by design - accounts are
+| created from the CLI, because a public signup form on an admin panel
+| is a liability rather than a feature.
 */
-Route::get('/login', function () {
-    \Illuminate\Support\Facades\Auth::loginUsingId(1);
-    return redirect('/admin');
-})->name('login');
-
-Route::post('/logout', function () {
-    \Illuminate\Support\Facades\Auth::logout();
-    return redirect('/');
-})->name('logout');
+Route::get('/login',  [\App\Http\Controllers\AuthController::class, 'show'])->name('login');
+Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login'])
+    ->middleware('throttle:10,1')->name('login.attempt');
+Route::post('/logout',[\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
