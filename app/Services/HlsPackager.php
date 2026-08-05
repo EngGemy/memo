@@ -73,9 +73,8 @@ class HlsPackager
             $iv,
         ]));
 
-        $brand = Setting::brand();
-        $watermarkText = trim((($brand['brand_name'] ?? 'MEMO STORE').'  '.($brand['watermark_phone'] ?? '')));
-        $watermark = $watermarkText !== '';
+        $pngPath = $this->watermarkPath();
+        $watermark = $pngPath !== null;
         $renditions = [];
 
         foreach ($this->ladder($probe) as $rung) {
@@ -90,7 +89,7 @@ class HlsPackager
                 // complain about too many inputs - it has to start its own chain.
                 $markW = max(48, (int) round($rung['width'] * self::MARK_FRACTION));
                 $inset = max(10, (int) round($rung['width'] * 0.035));
-                $png = str_replace(['\\', ':'], ['/', '\\:'], $watermark);
+                $png = str_replace(['\\', ':'], ['/', '\\:'], $pngPath);
 
                 $args[] = '-vf';
                 $args[] = "movie={$png},scale={$markW}:-2,format=rgba[wm];"
@@ -131,7 +130,7 @@ class HlsPackager
             if (! $p->isSuccessful()) {
                 $this->cleanup($keyAbs, $infoAbs);
                 throw new RuntimeException(
-                    "ffmpeg failed at {$rung['height']}p: ".mb_substr($p->getErrorOutput(), -900)
+                    "ffmpeg failed at {$rung['height']}p: ".$this->ffmpegTail($p->getErrorOutput())
                 );
             }
 
@@ -312,5 +311,20 @@ class HlsPackager
         foreach ($paths as $p) {
             @unlink($p);
         }
+    }
+
+    /** Prefer the real Error/Invalid lines over the trailing stream dump. */
+    private function ffmpegTail(string $stderr): string
+    {
+        $stderr = trim($stderr);
+        if ($stderr === '') {
+            return '(no stderr)';
+        }
+
+        if (preg_match_all('/^(?:\[.*?\])?(?:Error|Invalid|Unknown|Option|Impossible|No such|Permission|Conversion).*$/mi', $stderr, $m)) {
+            return mb_substr(implode(' | ', array_slice($m[0], -4)), 0, 900);
+        }
+
+        return mb_substr($stderr, -900);
     }
 }
