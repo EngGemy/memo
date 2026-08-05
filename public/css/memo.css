@@ -1,0 +1,272 @@
+/* MEMO STORE — shared stylesheet, merged from admin.html / landing.html / verify.html
+   Order: shared reset → public library (landing) → admin dashboard → verify page.
+   Where a bare selector existed on more than one page (body, nav, section, .btn,
+   .mono, .empty, h1/h2/h3, .glow, .row, .card) it is namespaced below so each page
+   keeps its original, independent look now that the CSS is shared. */
+
+:root{
+  --ink:#04060F;--shard:#0A1024;--volt:#1B4DFF;--beam:#5B8CFF;--chrome:#F2F5FF;--steel:#7C89A8;
+  --line:rgba(91,140,255,.16);--ok:#3DFF9E;--warn:#FFB43C;--bad:#FF4D6D;--notch:12px;--nc:14px;
+  --fd:'Cairo',sans-serif;--fb:'Tajawal',sans-serif;--fm:'JetBrains Mono',monospace;
+  --logo-nav:32px;--logo-hero:76px;--logo-foot:40px;
+}
+html[lang=en]{--fd:'Chakra Petch',sans-serif;--fb:'Inter Tight',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+
+/* ============ public library (landing) ============ */
+body{background:var(--ink);color:var(--chrome);font-family:'Tajawal',sans-serif;line-height:1.6;overflow-x:hidden}
+h1,h2,h3{font-family:'Cairo',sans-serif;font-weight:900;line-height:1.25}
+.nc{clip-path:polygon(0 0,calc(100% - var(--nc)) 0,100% var(--nc),100% 100%,var(--nc) 100%,0 calc(100% - var(--nc)))}
+.w{width:min(1180px,92vw);margin-inline:auto}
+.glow{position:fixed;width:75vw;height:75vw;border-radius:50%;top:-30vw;inset-inline-start:-15vw;background:radial-gradient(circle,rgba(27,77,255,.26),transparent 62%);filter:blur(40px);pointer-events:none;z-index:0}
+header{position:sticky;top:0;z-index:60;background:rgba(4,6,15,.8);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+/* scoped to header: admin also has a bare <nav> (sidebar) that must not pick this up */
+header nav{display:flex;align-items:center;gap:16px;height:70px}
+header nav img{width:auto;filter:drop-shadow(0 0 16px rgba(27,77,255,.55))}
+header nav .sp{margin-inline-start:auto;display:flex;gap:9px;align-items:center}
+.btn{--nc:9px;background:var(--volt);color:#fff;padding:10px 18px;font-family:'Cairo';font-weight:700;font-size:13.5px;display:inline-flex;gap:7px;align-items:center;transition:.2s;clip-path:polygon(0 0,calc(100% - var(--nc)) 0,100% var(--nc),100% 100%,var(--nc) 100%,0 calc(100% - var(--nc)))}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px -12px var(--volt)}
+.btn.g{background:transparent;border:1px solid var(--line)}
+/* bare <section> also matches admin's <section data-panel>; reset below in admin block */
+section{position:relative;z-index:2;padding:clamp(52px,8vw,96px) 0}
+.hero{text-align:center;padding-top:clamp(40px,6vw,72px)}
+.hero img{width:auto;margin:0 auto 22px;filter:drop-shadow(0 0 34px rgba(27,77,255,.7))}
+.hero h1{font-size:clamp(28px,4.6vw,52px);margin-bottom:14px}
+.hero h1 em{font-style:normal;background:linear-gradient(100deg,var(--beam),var(--volt) 55%,#fff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--steel);font-size:clamp(15px,1.7vw,17.5px);max-width:56ch;margin:0 auto 26px}
+.cta{display:flex;gap:11px;justify-content:center;flex-wrap:wrap}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.tab{--nc:8px;padding:9px 16px;border:1px solid var(--line);font-size:13.5px;color:var(--steel);transition:.2s;white-space:nowrap;clip-path:polygon(0 0,calc(100% - var(--nc)) 0,100% var(--nc),100% 100%,var(--nc) 100%,0 calc(100% - var(--nc)))}
+.tab.on{background:var(--volt);border-color:var(--volt);color:#fff}
+.tab b{opacity:.6;margin-inline-start:6px;font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:17px}
+.card{--nc:14px;background:var(--shard);border:1px solid var(--line);overflow:hidden;transition:transform .3s,border-color .3s;cursor:pointer}
+.card:hover{transform:translateY(-6px);border-color:rgba(91,140,255,.45)}
+.th{aspect-ratio:1/1;position:relative;background:linear-gradient(145deg,#0E1738,#050A18);overflow:hidden}
+.th img{width:100%;height:100%;object-fit:cover}
+.th .pl{position:absolute;inset:0;margin:auto;width:52px;height:52px;border-radius:50%;border:1px solid rgba(91,140,255,.55);background:rgba(4,6,15,.55);backdrop-filter:blur(5px);display:grid;place-items:center;transition:.3s}
+.card:hover .pl{background:var(--volt);transform:scale(1.14)}
+.pl i{width:0;height:0;border-inline-start:13px solid #fff;border-block:8px solid transparent;transform:scaleX(-1);margin-inline-end:3px}
+.th .d{position:absolute;bottom:8px;inset-inline-end:8px;padding:3px 8px;background:rgba(2,4,10,.85);font-family:'JetBrains Mono';font-size:10.5px;direction:ltr}
+.bd{padding:15px 16px 17px}
+.ct{display:inline-block;padding:3px 9px;font-size:11px;background:rgba(27,77,255,.14);border:1px solid rgba(91,140,255,.28);color:var(--beam);margin-bottom:9px}
+.bd h3{font-size:16px;margin-bottom:6px}
+.bd p{color:var(--steel);font-size:13.5px}
+.ft{display:flex;gap:10px;align-items:center;margin-top:12px;padding-top:11px;border-top:1px solid var(--line);font-size:12px;color:var(--steel)}
+.ft .vc{margin-inline-start:auto;font-family:'JetBrains Mono';font-size:11px;color:var(--beam);direction:ltr}
+.empty{padding:60px 20px;text-align:center;color:var(--steel)}
+.pcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.pc{--nc:14px;background:var(--shard);border:1px solid var(--line);padding:24px}
+.pc h3{font-size:16px;margin-bottom:8px}
+.pc p{color:var(--steel);font-size:13.5px}
+.pc .ic{width:38px;height:38px;--nc:9px;background:rgba(27,77,255,.14);border:1px solid rgba(91,140,255,.3);display:grid;place-items:center;color:var(--beam);margin-bottom:15px;font-size:16px}
+.hd{max-width:640px;margin-bottom:34px}
+.hd h2{font-size:clamp(23px,3.4vw,38px);margin-bottom:12px}
+.hd p{color:var(--steel)}
+.eb{font-weight:700;font-size:12.5px;color:var(--beam);display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.eb::before{content:'';width:20px;height:1px;background:var(--volt)}
+footer{border-top:1px solid var(--line);padding:40px 0 26px;position:relative;z-index:2;text-align:center}
+footer img{width:auto;margin:0 auto 14px;filter:drop-shadow(0 0 18px rgba(27,77,255,.5))}
+footer .ch{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+footer .ch a{--nc:7px;padding:8px 14px;border:1px solid var(--line);font-size:13px;transition:.2s;clip-path:polygon(0 0,calc(100% - var(--nc)) 0,100% var(--nc),100% 100%,var(--nc) 100%,0 calc(100% - var(--nc)))}
+footer .ch a:hover{border-color:var(--volt);background:rgba(27,77,255,.1)}
+footer small{color:#5A6478;font-size:12px}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(2,4,10,.93);backdrop-filter:blur(8px);display:none;place-items:center;padding:18px}
+.modal.on{display:grid}
+.mbox{--nc:18px;width:min(880px,100%);background:var(--shard);border:1px solid var(--line);overflow:hidden;position:relative}
+.mbox video{width:100%;display:block;background:#000;max-height:72vh}
+.mx{position:absolute;top:10px;inset-inline-end:10px;z-index:3;width:34px;height:34px;background:rgba(4,6,15,.75);border:1px solid var(--line);border-radius:50%;font-size:17px}
+.mi{padding:15px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.mi h3{font-size:16px}
+.mi .vc{margin-inline-start:auto;font-family:'JetBrains Mono';font-size:11.5px;color:var(--beam);direction:ltr}
+.trace{position:absolute;font-family:'JetBrains Mono';font-size:11px;color:rgba(242,245,255,.28);pointer-events:none;user-select:none;text-shadow:0 0 10px #000;z-index:2;direction:ltr}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.tabs{overflow-x:auto;flex-wrap:nowrap}}
+
+/* logo sizing driven by CSS vars (kept in sync with the admin brand sliders) */
+header nav img,.alogo img{height:var(--logo-nav)}
+.hero img{height:var(--logo-hero)}
+footer img{height:var(--logo-foot)}
+
+/* ============ admin dashboard ============ */
+/* body:has(.shell) instead of a bare `body` rule, since the base body{} above (landing) already covers background/color/font-family and would otherwise collide */
+body:has(.shell){font-family:var(--fb);font-size:14px;line-height:1.55;overflow-x:visible;-webkit-font-smoothing:antialiased}
+.notch{clip-path:polygon(0 0,calc(100% - var(--notch)) 0,100% var(--notch),100% 100%,var(--notch) 100%,0 calc(100% - var(--notch)))}
+html[lang=en] .notch{clip-path:polygon(var(--notch) 0,100% 0,100% calc(100% - var(--notch)),calc(100% - var(--notch)) 100%,0 100%,0 var(--notch))}
+/* scoped to .shell so landing's bare h1,h2,h3 (line-height:1.25) can't leak into the dashboard */
+.shell h1,.shell h2,.shell h3{font-family:var(--fd);font-weight:900;letter-spacing:0;line-height:1.55}
+html[lang=en] .shell h1,html[lang=en] .shell h2,html[lang=en] .shell h3{text-transform:uppercase;font-weight:700}
+.shell{display:grid;grid-template-columns:222px 1fr;min-height:100vh}
+
+aside{border-inline-end:1px solid var(--line);background:#060915;padding:20px 0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.alogo{padding:0 20px 20px}
+.alogo img{width:auto;filter:drop-shadow(0 0 14px rgba(27,77,255,.55))}
+aside nav button,aside nav a{display:block;width:100%;text-align:start;padding:10px 20px;color:var(--steel);
+  border-inline-start:2px solid transparent;font-size:13.5px;transition:.2s}
+aside nav button:hover,aside nav a:hover{color:var(--chrome);background:rgba(27,77,255,.05)}
+aside nav button.on,aside nav a.on{color:var(--chrome);border-inline-start-color:var(--volt);background:rgba(27,77,255,.1)}
+aside h4{font-family:var(--fm);font-size:9px;letter-spacing:.18em;color:#4A5570;padding:16px 20px 6px;text-transform:uppercase}
+html[lang=ar] aside h4{font-family:var(--fb);letter-spacing:0;font-size:11.5px;text-transform:none}
+
+main{padding:22px clamp(14px,3vw,28px) 60px;max-width:1320px}
+/* undo the leaked landing `section{}` (position/z-index/padding) on the dashboard's <section data-panel> wrappers */
+main section[data-panel]{position:static;z-index:auto;padding:0}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.top h1{font-size:22px}
+.sp{margin-inline-start:auto;display:flex;align-items:center;gap:10px}
+.lang{--notch:7px;display:flex;border:1px solid var(--line);font-family:var(--fm);font-size:11px}
+.lang button{padding:6px 11px;color:var(--steel)}
+.lang button.on{background:var(--volt);color:#fff}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.kpi{--notch:10px;background:var(--shard);border:1px solid var(--line);padding:16px}
+.kpi span{font-family:var(--fb);font-size:11.5px;color:var(--steel)}
+.kpi b{display:block;font-family:var(--fd);font-size:26px;margin-top:4px;line-height:1}
+.kpi i{font-style:normal;font-size:11.5px;color:var(--ok)}
+.kpi i.w{color:var(--warn)}.kpi i.b{color:var(--bad)}
+
+.panel{--notch:14px;background:var(--shard);border:1px solid var(--line);margin-bottom:16px}
+.panel>header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.panel>header h2{font-size:15px}
+.panel>header small{margin-inline-start:auto;font-size:12px;color:var(--steel)}
+.in{padding:18px}
+
+input[type=text],input[type=url],input[type=number],select,textarea{width:100%;background:#060B1C;
+  border:1px solid var(--line);color:var(--chrome);padding:10px 12px;font-family:inherit;font-size:13px;--notch:8px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--volt)}
+label.f{display:block;font-size:12px;color:var(--steel);margin-bottom:5px}
+/* .shell .btn (not bare .btn) so it wins over landing's .btn by specificity instead of by source order */
+.shell .btn{--notch:9px;background:var(--volt);color:#fff;padding:10px 18px;font-family:var(--fd);font-weight:700;
+  font-size:13px;transition:.2s;display:inline-flex;align-items:center;gap:7px}
+.shell .btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px -10px var(--volt)}
+.shell .btn[disabled]{opacity:.4;transform:none;box-shadow:none;cursor:not-allowed}
+.shell .btn.sm{padding:6px 12px;font-size:12px}
+.shell .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--chrome)}
+.shell .btn.bad{background:var(--bad)}
+.shell .btn.ok{background:#127a4a}
+
+.drop{--notch:12px;border:1px dashed rgba(91,140,255,.4);background:rgba(27,77,255,.04);padding:28px;text-align:center;transition:.25s}
+.drop.hot{border-color:var(--volt);background:rgba(27,77,255,.12)}
+.drop b{display:block;font-family:var(--fd);font-weight:700;font-size:15px}
+.drop small{display:block;font-size:12.5px;color:var(--steel);margin-top:6px}
+.fields{display:grid;grid-template-columns:1fr 1fr 190px 190px;gap:11px;margin-top:14px}
+.queue{margin-top:14px;display:grid;gap:9px}
+.job{--notch:8px;border:1px solid var(--line);padding:12px 15px;background:rgba(4,6,15,.5)}
+.job .r{display:flex;align-items:center;gap:10px;font-size:13px}
+.job .r span{margin-inline-start:auto;font-size:12px;color:var(--steel)}
+.pbar{height:4px;background:rgba(242,245,255,.1);margin-top:9px;position:relative;overflow:hidden}
+.pbar i{position:absolute;inset-block:0;inset-inline:0 100%;background:linear-gradient(90deg,var(--volt),var(--beam));
+  transition:inset-inline-end .4s;box-shadow:0 0 10px var(--volt)}
+
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th{font-size:12px;color:var(--steel);text-align:start;padding:10px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 16px;border-bottom:1px solid rgba(91,140,255,.07);font-size:13px;vertical-align:middle}
+tr:hover td{background:rgba(27,77,255,.04)}
+.tag{--notch:4px;display:inline-block;padding:3px 9px;font-size:11.5px;white-space:nowrap}
+.tag.ok{background:rgba(61,255,158,.12);color:var(--ok)}
+.tag.run{background:rgba(27,77,255,.16);color:var(--beam)}
+.tag.wait{background:rgba(124,137,168,.14);color:var(--steel)}
+.tag.bad{background:rgba(255,77,109,.13);color:var(--bad)}
+.tag.warn{background:rgba(255,180,60,.13);color:var(--warn)}
+/* .shell .mono so verify's bare .mono (different font-size) can't leak in either direction */
+.shell .mono{font-family:var(--fm);font-size:11.5px;color:var(--steel);direction:ltr;display:inline-block}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+
+/* watermark composer */
+.wmgrid{display:grid;grid-template-columns:1fr 300px;gap:20px}
+.stagebox{background:
+   linear-gradient(45deg,rgba(91,140,255,.06) 25%,transparent 25%,transparent 75%,rgba(91,140,255,.06) 75%) 0 0/16px 16px,
+   linear-gradient(45deg,rgba(91,140,255,.06) 25%,transparent 25%,transparent 75%,rgba(91,140,255,.06) 75%) 8px 8px/16px 16px,
+   #05091A;padding:14px;--notch:8px;display:grid;place-items:center}
+#wmCanvas{max-width:100%;height:auto;background:#0b1020}
+.slider{margin-bottom:14px}
+.slider .row{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;font-size:12px;color:var(--steel)}
+.slider .row output{margin-inline-start:auto;font-family:var(--fm);font-size:11.5px;color:var(--beam);
+  background:rgba(27,77,255,.12);padding:2px 8px}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:rgba(242,245,255,.14);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;background:var(--volt);
+  cursor:pointer;box-shadow:0 0 12px var(--volt);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+
+.hide{display:none!important}
+/* .shell .empty so landing's bare .empty (60px/20px padding, no font-size) can't leak in either direction */
+.shell .empty{padding:34px 18px;text-align:center;color:var(--steel);font-size:13.5px}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(91,140,255,.3);
+  border-top-color:var(--volt);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;inset-block-end:22px;inset-inline-start:50%;transform:translateX(50%);
+  background:var(--volt);color:#fff;padding:11px 20px;--notch:8px;font-size:13.5px;z-index:200;
+  opacity:0;pointer-events:none;transition:opacity .25s}
+html[lang=en] .toast{transform:translateX(-50%)}
+.toast.show{opacity:1}
+.toast.bad{background:var(--bad)}
+
+#mbtn{display:none;font-size:20px}
+@media(max-width:980px){
+  .shell{grid-template-columns:1fr}
+  aside{position:fixed;inset-block:0;inset-inline-start:0;width:230px;z-index:90;transform:translateX(105%);transition:transform .3s}
+  html[lang=en] aside{transform:translateX(-105%)}
+  aside.open{transform:none}
+  #mbtn{display:block}
+  .fields,.wmgrid{grid-template-columns:1fr}
+}
+
+/* ============ verify page ============ */
+/* Blade adds class="verify-page" to <body> on this page; used to namespace .card, .glow, .row and h1
+   since those bare selectors already exist (with different rules) on the landing/admin pages above. */
+body.verify-page{min-height:100vh;display:grid;place-items:center;padding:24px;overflow-x:visible}
+body.verify-page .glow{position:fixed;width:80vw;height:80vw;border-radius:50%;top:-40vw;left:50%;inset-inline-start:auto;transform:translateX(-50%);
+  background:radial-gradient(circle,rgba(27,77,255,.22),transparent 62%);filter:blur(40px);pointer-events:none}
+body.verify-page .card{--notch:20px;position:relative;width:min(560px,100%);background:var(--shard);
+  border:1px solid var(--line);padding:38px 32px;text-align:center;
+  clip-path:polygon(0 0,calc(100% - var(--notch)) 0,100% var(--notch),100% 100%,var(--notch) 100%,0 calc(100% - var(--notch)));
+  box-shadow:0 40px 90px -34px rgba(27,77,255,.5)}
+.logo{height:52px;width:auto;margin:0 auto 22px;filter:drop-shadow(0 0 26px rgba(27,77,255,.65))}
+.badge{--notch:8px;display:inline-flex;align-items:center;gap:9px;padding:9px 18px;font-size:14px;font-weight:700;
+  clip-path:polygon(0 0,calc(100% - var(--notch)) 0,100% var(--notch),100% 100%,var(--notch) 100%,0 calc(100% - var(--notch)))}
+.badge.y{background:rgba(61,255,158,.12);color:var(--ok);border:1px solid rgba(61,255,158,.4)}
+.badge.n{background:rgba(255,77,109,.12);color:var(--bad);border:1px solid rgba(255,77,109,.4)}
+body.verify-page h1{font-family:'Cairo',sans-serif;font-weight:900;font-size:23px;margin:20px 0 8px;line-height:1.35}
+p{color:var(--steel);font-size:14.5px}
+body.verify-page .rows{margin:24px 0;text-align:start;border-top:1px solid var(--line)}
+body.verify-page .row{display:flex;gap:14px;padding:11px 0;border-bottom:1px solid rgba(91,140,255,.08);font-size:13.5px}
+body.verify-page .row span:first-child{color:var(--steel);min-width:118px}
+body.verify-page .row b{margin-inline-start:auto;font-weight:500}
+.mono{font-family:'JetBrains Mono',monospace;font-size:12.5px;direction:ltr}
+.ch{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.ch a{--notch:7px;padding:9px 15px;border:1px solid var(--line);font-size:13px;color:var(--chrome);
+  text-decoration:none;transition:.2s;
+  clip-path:polygon(0 0,calc(100% - var(--notch)) 0,100% var(--notch),100% 100%,var(--notch) 100%,0 calc(100% - var(--notch)))}
+.ch a:hover{border-color:var(--volt);background:rgba(27,77,255,.1)}
+.note{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:#5A6478}
+.hide{display:none!important}
+
+/* ============ admin extras: edit modal, drag, categories, thumbs ============ */
+.shell .modal{position:fixed;inset:0;z-index:150;background:rgba(2,4,10,.88);backdrop-filter:blur(6px);display:none;place-items:center;padding:18px}
+.shell .modal.on{display:grid}
+.shell .mbox{--notch:16px;width:min(640px,100%);background:var(--shard);border:1px solid var(--line);max-height:90vh;overflow:auto;position:relative}
+.shell .mbox>header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.shell .mbox>header h2{font-size:15px}
+.shell .mbox .mx{margin-inline-start:auto;width:32px;height:32px;border:1px solid var(--line);border-radius:50%;font-size:16px}
+.shell .mbox .in{padding:18px}
+.shell .ef{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+@media(max-width:640px){.shell .ef{grid-template-columns:1fr}}
+.shell .poster-box{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin:14px 0}
+.shell .poster-box img{width:96px;height:96px;object-fit:cover;background:#060B1C;border:1px solid var(--line)}
+.shell .drag{cursor:grab;color:var(--steel);padding:0 6px;user-select:none;font-size:14px;letter-spacing:-1px}
+.shell .drag:active{cursor:grabbing}
+.shell tr.dragging{opacity:.45}
+.shell tr.drag-over td{border-top:2px solid var(--volt)}
+.shell .vthumb{width:44px;height:44px;object-fit:cover;background:#060B1C;border:1px solid var(--line);flex-shrink:0}
+.shell .vtitle{display:flex;align-items:center;gap:10px}
+.shell .cat-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(91,140,255,.07)}
+.shell .cat-row:hover{background:rgba(27,77,255,.04)}
+.shell .cat-row .nm{flex:1;min-width:0}
+.shell .cat-row input{margin:0}
+.shell .lang a,.shell .lang button{padding:6px 11px;color:var(--steel);display:inline-block}
+.shell .lang a.on,.shell .lang button.on{background:var(--volt);color:#fff}
+header .lang{--nc:7px;display:flex;border:1px solid var(--line);font-family:var(--fm);font-size:11px;clip-path:polygon(0 0,calc(100% - var(--nc)) 0,100% var(--nc),100% 100%,var(--nc) 100%,0 calc(100% - var(--nc)))}
+header .lang a{padding:6px 11px;color:var(--steel)}
+header .lang a.on{background:var(--volt);color:#fff}
