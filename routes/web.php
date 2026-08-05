@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LeakReportController;
 use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\Admin\VideoUploadController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\PosterController;
 use App\Http\Controllers\StreamController;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Route;
 | purpose. Protection is the burned watermark, the forensic overlay, the
 | signed short-lived URLs, and the verify code.
 */
-Route::get('/', fn () => response()->file(public_path('landing.html'), ['Content-Type'=>'text/html; charset=UTF-8']))->name('landing');
+Route::get('/', fn () => view('pages.landing'))->name('landing');
 
 Route::get('/api/videos', [LibraryController::class, 'index'])->name('library.index');
 Route::get('/api/categories', [LibraryController::class, 'categories'])->name('library.categories');
@@ -42,33 +43,38 @@ Route::get('/hls/{video}/{rendition}/{file}', [StreamController::class, 'segment
 | Admin
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth','can:manage-content'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', fn () => response()->file(public_path('admin.html'), ['Content-Type'=>'text/html; charset=UTF-8']))->name('dashboard');
+Route::middleware(['auth', 'can:manage-content'])->prefix('admin')->name('admin.')->group(function () {
+    Route::view('/', 'pages.admin.videos', ['panel' => 'videos'])->name('dashboard');
+    Route::view('/categories', 'pages.admin.categories', ['panel' => 'categories'])->name('categories');
+    Route::view('/upload', 'pages.admin.upload', ['panel' => 'upload'])->name('upload');
+    Route::view('/brand', 'pages.admin.brand', ['panel' => 'brand'])->name('brand');
+    Route::view('/leaks', 'pages.admin.leaks', ['panel' => 'leaks'])->name('leaks');
+    Route::view('/activity', 'pages.admin.activity', ['panel' => 'activity'])->name('activity');
 
     Route::get('/api/overview', [DashboardController::class, 'overview'])->name('overview');
 
-    Route::get('/api/videos',                [VideoController::class, 'index'])->name('videos.index');
-    Route::get('/api/videos/{video}',        [VideoController::class, 'show'])->name('videos.show');
-    Route::patch('/api/videos/{video}',      [VideoController::class, 'update'])->name('videos.update');
-    Route::delete('/api/videos/{video}',     [VideoController::class, 'destroy'])->name('videos.destroy');
-    Route::post('/api/videos/{video}/publish',   [VideoController::class, 'publish'])->name('videos.publish');
+    Route::get('/api/videos', [VideoController::class, 'index'])->name('videos.index');
+    Route::get('/api/videos/{video}', [VideoController::class, 'show'])->name('videos.show');
+    Route::patch('/api/videos/{video}', [VideoController::class, 'update'])->name('videos.update');
+    Route::delete('/api/videos/{video}', [VideoController::class, 'destroy'])->name('videos.destroy');
+    Route::post('/api/videos/{video}/publish', [VideoController::class, 'publish'])->name('videos.publish');
     Route::post('/api/videos/{video}/unpublish', [VideoController::class, 'unpublish'])->name('videos.unpublish');
-    Route::post('/api/videos/{video}/retry',     [VideoController::class, 'retry'])->name('videos.retry');
-    Route::post('/api/videos/reorder',           [VideoController::class, 'reorder'])->name('videos.reorder');
+    Route::post('/api/videos/{video}/retry', [VideoController::class, 'retry'])->name('videos.retry');
+    Route::post('/api/videos/reorder', [VideoController::class, 'reorder'])->name('videos.reorder');
 
-    Route::get('/api/categories',               [CategoryController::class, 'index'])->name('categories.index');
-    Route::post('/api/categories',              [CategoryController::class, 'store'])->name('categories.store');
-    Route::patch('/api/categories/{category}',  [CategoryController::class, 'update'])->name('categories.update');
+    Route::get('/api/categories', [CategoryController::class, 'index'])->name('categories.index');
+    Route::post('/api/categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::patch('/api/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('/api/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
-    Route::post('/api/categories/reorder',      [CategoryController::class, 'reorder'])->name('categories.reorder');
+    Route::post('/api/categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
 
-    Route::post('/api/videos/{video}/poster',       [VideoController::class, 'poster'])->name('videos.poster');
+    Route::post('/api/videos/{video}/poster', [VideoController::class, 'poster'])->name('videos.poster');
     Route::post('/api/videos/{video}/poster/reset', [VideoController::class, 'resetPoster'])->name('videos.poster.reset');
-    Route::get('/api/brand',  [BrandController::class, 'show'])->name('brand.show');
+    Route::get('/api/brand', [BrandController::class, 'show'])->name('brand.show');
     Route::post('/api/brand', [BrandController::class, 'update'])->name('brand.update');
 
-    Route::post('/api/leaks',                  [LeakReportController::class, 'store'])->name('leaks.store');
-    Route::patch('/api/leaks/{leakReport}',    [LeakReportController::class, 'update'])->name('leaks.update');
+    Route::post('/api/leaks', [LeakReportController::class, 'store'])->name('leaks.store');
+    Route::patch('/api/leaks/{leakReport}', [LeakReportController::class, 'update'])->name('leaks.update');
     Route::get('/api/leaks/{leakReport}/evidence', [LeakReportController::class, 'evidence'])->name('leaks.evidence');
 
     Route::post('/uploads', [VideoUploadController::class, 'open'])->name('uploads.open');
@@ -86,7 +92,7 @@ Route::middleware(['auth','can:manage-content'])->prefix('admin')->name('admin.'
 | created from the CLI, because a public signup form on an admin panel
 | is a liability rather than a feature.
 */
-Route::get('/login',  [\App\Http\Controllers\AuthController::class, 'show'])->name('login');
-Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login'])
+Route::get('/login', [AuthController::class, 'show'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:10,1')->name('login.attempt');
-Route::post('/logout',[\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
