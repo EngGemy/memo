@@ -11,8 +11,11 @@ class PlaybackSession extends Model
 
     public function isValidFor(string $ip, string $uaHash): bool
     {
+        // The user agent stays bound, but not the IP: mobile networks
+        // reassign addresses mid-session, and a viewer losing playback
+        // halfway through a video is a worse outcome than the marginal
+        // hotlink protection a strict IP check would add.
         return $this->expires_at->isFuture()
-            && hash_equals($this->ua_hash, $uaHash)
-            && $this->ip === $ip;
+            && hash_equals($this->ua_hash, $uaHash);
     }
 }
