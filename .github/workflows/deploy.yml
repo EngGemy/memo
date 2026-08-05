@@ -44,7 +44,7 @@ jobs:
     timeout-minutes: 20
     environment:
       name: production
-      url: ${{ secrets.APP_URL }}
+      url: https://memo.gawasem.com
     steps:
       - name: Pull, install, migrate, cache
         uses: appleboy/ssh-action@v1.2.0
