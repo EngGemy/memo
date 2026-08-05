@@ -73,7 +73,9 @@ class HlsPackager
             $iv,
         ]));
 
-        $watermark  = $this->watermarkPath();
+        $brand         = \App\Models\Setting::brand();
+        $watermarkText = trim((($brand['brand_name'] ?? 'MEMO STORE').'  '.($brand['watermark_phone'] ?? '')));
+        $watermark     = $watermarkText !== '';
         $renditions = [];
 
         foreach ($this->ladder($probe) as $rung) {
@@ -82,19 +84,20 @@ class HlsPackager
             $args = [$this->ffmpeg, '-y', '-i', $masterAbs];
 
             if ($watermark) {
-                $markW = max(48, (int) round($rung['width'] * self::MARK_FRACTION));
-                $inset = max(10, (int) round($rung['width'] * 0.035));
+                // This ffmpeg build rejects multi-input filter graphs, so the
+                // mark is drawn as text rather than overlaid as an image. For
+                // anti-impersonation that is arguably stronger: a phone number
+                // is unambiguous proof of origin and cannot be mistaken for
+                // generic branding a thief could claim as their own.
+                $fs    = max(14, (int) round($rung['width'] * 0.028));
+                $inset = max(10, (int) round($rung['width'] * 0.030));
+                $label = str_replace(':', '\:', $watermarkText);
 
-                $args[] = '-i';
-                $args[] = $watermark;
-                $args[] = '-filter_complex';
-                $args[] = "[0:v]scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1[base];"
-                        . "[1:v]scale={$markW}:-2[mark];"
-                        . "[base][mark]overlay=W-w-{$inset}:H-h-{$inset}:format=auto,format=yuv420p[v]";
-                $args[] = '-map';
-                $args[] = '[v]';
-                $args[] = '-map';
-                $args[] = '0:a?';
+                $args[] = '-vf';
+                $args[] = "scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1,"
+                        . "drawtext=text='{$label}':x=w-tw-{$inset}:y=h-th-{$inset}"
+                        . ":fontsize={$fs}:fontcolor=white@0.82:box=1:boxcolor=black@0.35:boxborderw=8,"
+                        . "format=yuv420p";
             } else {
                 $args[] = '-vf';
                 $args[] = "scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1,format=yuv420p";
