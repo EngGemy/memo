@@ -74,72 +74,54 @@ class HlsPackager
         ]));
 
         $pngPath = $this->watermarkPath();
-        $watermark = $pngPath !== null;
+        $wantMark = $pngPath !== null;
+        $burnedMark = false;
         $renditions = [];
 
         foreach ($this->ladder($probe) as $rung) {
             @mkdir("{$hlsAbs}/{$rung['height']}", 0750, true);
 
-            $args = [$this->ffmpeg, '-y', '-i', $masterAbs];
+            $ok = false;
+            $lastErr = '';
 
-            if ($watermark) {
-                // movie= loads the PNG as a source node inside a single-input
-                // graph. A second -i input makes this ffmpeg build fail in the
-                // auto-scaler, and chaining movie= after a comma makes it
-                // complain about too many inputs - it has to start its own chain.
-                // Labels require -filter_complex (not -vf) on ffmpeg 5.x.
-                $markW = max(48, (int) round($rung['width'] * self::MARK_FRACTION));
-                $inset = max(10, (int) round($rung['width'] * 0.035));
-                $png = str_replace(['\\', ':'], ['/', '\\:'], $pngPath);
+            // Prefer a burned mark; if this ffmpeg rejects the overlay graph,
+            // fall back to a clean encode so the library still publishes.
+            foreach ([true, false] as $withMark) {
+                if ($withMark && ! $wantMark) {
+                    continue;
+                }
 
-                array_push($args,
-                    '-filter_complex',
-                    "movie={$png},scale={$markW}:-2,format=rgba[wm];"
-                    ."[0:v]scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1[base];"
-                    ."[base][wm]overlay=W-w-{$inset}:H-h-{$inset},format=yuv420p[vout]",
-                    '-map', '[vout]',
-                    '-map', '0:a?'
+                $args = $this->encodeArgs(
+                    $masterAbs,
+                    $hlsAbs,
+                    $infoAbs,
+                    $rung,
+                    $withMark ? $pngPath : null,
                 );
-            } else {
-                array_push($args,
-                    '-vf', "scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1,format=yuv420p",
-                    '-map', '0:v:0',
-                    '-map', '0:a?'
-                );
+
+                $p = new Process($args, timeout: 7200);
+                $p->run(function ($type, $buffer) use ($onProgress, $probe) {
+                    if ($onProgress && preg_match('/time=(\d+):(\d+):(\d+)/', $buffer, $m)) {
+                        $done = ($m[1] * 3600) + ($m[2] * 60) + $m[3];
+                        $onProgress($probe['duration'] > 0
+                            ? min(99, (int) ($done / $probe['duration'] * 100))
+                            : 0);
+                    }
+                });
+
+                if ($p->isSuccessful()) {
+                    $ok = true;
+                    $burnedMark = $burnedMark || $withMark;
+                    break;
+                }
+
+                $lastErr = $this->ffmpegTail($p->getErrorOutput());
+                @array_map('unlink', glob("{$hlsAbs}/{$rung['height']}/*") ?: []);
             }
 
-            $gop = (int) round(round($rung['fps']) * self::SEGMENT_SECONDS);
-
-            array_push($args,
-                '-threads', (string) max(0, (int) env('FFMPEG_THREADS', 0)),
-                '-c:v', 'libx264', '-profile:v', 'main', '-preset', 'veryfast',
-                '-b:v', $rung['vb'].'k',
-                '-maxrate', $rung['vb'].'k',
-                '-bufsize', ($rung['vb'] * 2).'k',
-                '-g', (string) $gop, '-keyint_min', (string) $gop, '-sc_threshold', '0',
-                '-c:a', 'aac', '-b:a', $rung['ab'].'k', '-ac', '2', '-ar', '48000',
-                '-hls_time', (string) self::SEGMENT_SECONDS,
-                '-hls_playlist_type', 'vod',
-                '-hls_key_info_file', $infoAbs,
-                '-hls_segment_filename', "{$hlsAbs}/{$rung['height']}/seg_%05d.ts",
-                "{$hlsAbs}/{$rung['height']}/index.m3u8"
-            );
-
-            $p = new Process($args, timeout: 7200);
-            $p->run(function ($type, $buffer) use ($onProgress, $probe) {
-                if ($onProgress && preg_match('/time=(\d+):(\d+):(\d+)/', $buffer, $m)) {
-                    $done = ($m[1] * 3600) + ($m[2] * 60) + $m[3];
-                    $onProgress($probe['duration'] > 0
-                        ? min(99, (int) ($done / $probe['duration'] * 100))
-                        : 0);
-                }
-            });
-
-            if (! $p->isSuccessful()) {
+            if (! $ok) {
                 $this->cleanup($keyAbs, $infoAbs);
-                throw new RuntimeException(
-                    "ffmpeg failed at {$rung['height']}p: ".$this->ffmpegTail($p->getErrorOutput())
-                );
+                throw new RuntimeException("ffmpeg failed at {$rung['height']}p: {$lastErr}");
             }
 
             $renditions[] = [
@@ -166,11 +148,62 @@ class HlsPackager
             'iv' => $iv,
             'duration' => (int) round($probe['duration']),
             'renditions' => $renditions,
-            'watermark' => (bool) $watermark,
+            'watermark' => $burnedMark,
             'sha256' => hash_file('sha256', $masterAbs),   // ownership evidence
             'poster' => "{$hlsRel}/poster.jpg",
             'source' => $probe,
         ];
+    }
+
+    /**
+     * Build one ffmpeg argv for a ladder rung.
+     *
+     * Watermark uses movie= as its own chain start (CloudLinux ffmpeg 5
+     * rejects a second -i for the PNG). Plain -vf, no filter_complex.
+     */
+    private function encodeArgs(
+        string $masterAbs,
+        string $hlsAbs,
+        string $infoAbs,
+        array $rung,
+        ?string $pngPath,
+    ): array {
+        $args = [$this->ffmpeg, '-y', '-i', $masterAbs];
+
+        if ($pngPath) {
+            $markW = max(48, (int) round($rung['width'] * self::MARK_FRACTION));
+            $inset = max(10, (int) round($rung['width'] * 0.035));
+            $png = str_replace(['\\', ':'], ['/', '\\:'], $pngPath);
+
+            $args[] = '-vf';
+            $args[] = "movie={$png},scale={$markW}:-2[wm];"
+                    ."[in]scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1[base];"
+                    ."[base][wm]overlay=W-w-{$inset}:H-h-{$inset},format=yuv420p";
+        } else {
+            $args[] = '-vf';
+            $args[] = "scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1,format=yuv420p";
+        }
+
+        $gop = max(1, (int) round(round($rung['fps']) * self::SEGMENT_SECONDS));
+        $threads = max(1, (int) env('FFMPEG_THREADS', 1));
+
+        array_push($args,
+            '-threads', (string) $threads,
+            '-c:v', 'libx264', '-profile:v', 'main', '-preset', 'veryfast',
+            '-pix_fmt', 'yuv420p',
+            '-b:v', $rung['vb'].'k',
+            '-maxrate', $rung['vb'].'k',
+            '-bufsize', ($rung['vb'] * 2).'k',
+            '-g', (string) $gop, '-keyint_min', (string) $gop, '-sc_threshold', '0',
+            '-c:a', 'aac', '-b:a', $rung['ab'].'k', '-ac', '2', '-ar', '48000',
+            '-hls_time', (string) self::SEGMENT_SECONDS,
+            '-hls_playlist_type', 'vod',
+            '-hls_key_info_file', $infoAbs,
+            '-hls_segment_filename', "{$hlsAbs}/{$rung['height']}/seg_%05d.ts",
+            "{$hlsAbs}/{$rung['height']}/index.m3u8"
+        );
+
+        return $args;
     }
 
     /**
