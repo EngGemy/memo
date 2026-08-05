@@ -100,10 +100,10 @@ class HlsPackager
                 $args[] = "scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1,format=yuv420p";
             }
 
-            $gop = (int) round($rung['fps'] * self::SEGMENT_SECONDS);
+            $gop = (int) round(round($rung['fps']) * self::SEGMENT_SECONDS);
 
             array_push($args,
-                '-r', (string) $rung['fps'],
+                '-threads', (string) max(0, (int) env('FFMPEG_THREADS', 0)),
                 '-c:v', 'libx264', '-profile:v', 'main', '-preset', 'veryfast',
                 '-b:v', $rung['vb'].'k',
                 '-maxrate', $rung['vb'].'k',
@@ -181,6 +181,10 @@ class HlsPackager
         $out  = [];
 
         foreach (self::HEIGHTS as $i => $targetH) {
+            if ($targetH > (int) env('FFMPEG_MAX_HEIGHT', 1080)) {
+                continue;
+            }
+
             if ($targetH > $srcH) {
                 continue;                                  // never upscale
             }
