@@ -15,25 +15,25 @@ class VideoController extends Controller
     public function index(): JsonResponse
     {
         return response()->json(
-            Video::with(['expert','category'])->orderBy('position')->get()->map->forAdmin()->values()
+            Video::with(['expert', 'category'])->orderBy('position')->get()->map->forAdmin()->values()
         );
     }
 
     public function show(Video $video): JsonResponse
     {
-        return response()->json($video->load(['expert','category'])->forAdmin());
+        return response()->json($video->load(['expert', 'category'])->forAdmin());
     }
 
     public function update(Request $request, Video $video): JsonResponse
     {
         $data = $request->validate([
-            'title'          => ['sometimes','string','max:180'],
-            'title_ar'       => ['sometimes','nullable','string','max:180'],
-            'description'    => ['sometimes','nullable','string','max:1000'],
-            'description_ar' => ['sometimes','nullable','string','max:1000'],
-            'category_id'    => ['sometimes','nullable','exists:categories,id'],
-            'position'       => ['sometimes','integer','min:1','max:999'],
-            'expert_id'      => ['sometimes','nullable','exists:experts,id'],
+            'title' => ['sometimes', 'string', 'max:180'],
+            'title_ar' => ['sometimes', 'nullable', 'string', 'max:180'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'description_ar' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'category_id' => ['sometimes', 'nullable', 'exists:categories,id'],
+            'position' => ['sometimes', 'integer', 'min:1', 'max:999'],
+            'expert_id' => ['sometimes', 'nullable', 'exists:experts,id'],
         ]);
 
         if (isset($data['title'])) {
@@ -42,7 +42,7 @@ class VideoController extends Controller
 
         $video->update($data);
 
-        return response()->json($video->fresh()->load(['expert','category'])->forAdmin());
+        return response()->json($video->fresh()->load(['expert', 'category'])->forAdmin());
     }
 
     /**
@@ -56,7 +56,7 @@ class VideoController extends Controller
     public function poster(Request $request, Video $video): JsonResponse
     {
         $request->validate([
-            'poster' => ['required','file','mimetypes:image/jpeg,image/png,image/webp','max:4096'],
+            'poster' => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:4096'],
         ]);
 
         // Remove the previous custom poster; the generated one lives on the
@@ -65,7 +65,7 @@ class VideoController extends Controller
             Storage::disk('public')->delete($video->poster_path);
         }
 
-        $ext  = $request->file('poster')->extension();
+        $ext = $request->file('poster')->extension();
         $name = 'posters/v'.$video->id.'-'.now()->timestamp.'.'.$ext;
 
         $request->file('poster')->storePubliclyAs(
@@ -76,7 +76,7 @@ class VideoController extends Controller
 
         return response()->json([
             'poster' => asset('storage/'.$name),
-            'video'  => $video->fresh()->forAdmin(),
+            'video' => $video->fresh()->forAdmin(),
         ]);
     }
 
@@ -102,8 +102,8 @@ class VideoController extends Controller
         abort_unless($video->isPlayable(), 422, 'Video is not processed yet.');
 
         $video->update([
-            'is_public'          => true,
-            'published_at'       => now(),
+            'is_public' => true,
+            'published_at' => now(),
             'first_published_at' => $video->first_published_at ?: now(),
         ]);
 
@@ -122,17 +122,21 @@ class VideoController extends Controller
         abort_unless($video->master_path, 422, 'No master file to process.');
 
         $video->update(['status' => 'queued', 'progress' => 0, 'error' => null]);
-        TranscodeVideo::dispatch($video->id)->onQueue('transcode');
+        TranscodeVideo::kick($video->id);
 
-        return response()->json(['status' => 'queued']);
+        return response()->json(['status' => $video->fresh()->status]);
     }
 
     public function destroy(Video $video): JsonResponse
     {
         $disk = Storage::disk($video->master_disk ?: 'private');
 
-        if ($video->hls_path)   { $disk->deleteDirectory($video->hls_path); }
-        if ($video->master_path) { $disk->delete($video->master_path); }
+        if ($video->hls_path) {
+            $disk->deleteDirectory($video->hls_path);
+        }
+        if ($video->master_path) {
+            $disk->delete($video->master_path);
+        }
         if ($video->poster_disk === 'public' && $video->poster_path) {
             Storage::disk('public')->delete($video->poster_path);
         }
@@ -145,8 +149,8 @@ class VideoController extends Controller
     public function reorder(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'order'   => ['required','array'],
-            'order.*' => ['integer','exists:videos,id'],
+            'order' => ['required', 'array'],
+            'order.*' => ['integer', 'exists:videos,id'],
         ]);
 
         foreach ($data['order'] as $i => $id) {

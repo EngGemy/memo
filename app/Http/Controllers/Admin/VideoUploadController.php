@@ -159,8 +159,11 @@ class VideoUploadController extends Controller
         ]);
 
         $session->update(['status' => 'complete']);
-        TranscodeVideo::dispatch($video->id)->onQueue('transcode');
+        TranscodeVideo::kick($video->id);
 
-        return response()->json(['video_id' => $video->id, 'status' => 'queued']);
+        return response()->json([
+            'video_id' => $video->id,
+            'status' => $video->fresh()->status,
+        ]);
     }
 }
