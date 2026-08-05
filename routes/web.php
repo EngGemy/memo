@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\Admin\BrandController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LeakReportController;
 use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\Admin\VideoUploadController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\PosterController;
 use App\Http\Controllers\StreamController;
 use App\Http\Controllers\VerifyController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +23,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => response()->file(public_path('landing.html'), ['Content-Type'=>'text/html; charset=UTF-8']))->name('landing');
 
 Route::get('/api/videos', [LibraryController::class, 'index'])->name('library.index');
+Route::get('/api/categories', [LibraryController::class, 'categories'])->name('library.categories');
+Route::get('/poster/{video}', [PosterController::class, 'show'])->name('poster.show');
 Route::post('/watch/{slug}/open', [LibraryController::class, 'open'])
     ->middleware('throttle:40,1')->name('library.open');
 
@@ -52,6 +56,14 @@ Route::middleware(['auth','can:manage-content'])->prefix('admin')->name('admin.'
     Route::post('/api/videos/{video}/retry',     [VideoController::class, 'retry'])->name('videos.retry');
     Route::post('/api/videos/reorder',           [VideoController::class, 'reorder'])->name('videos.reorder');
 
+    Route::get('/api/categories',               [CategoryController::class, 'index'])->name('categories.index');
+    Route::post('/api/categories',              [CategoryController::class, 'store'])->name('categories.store');
+    Route::patch('/api/categories/{category}',  [CategoryController::class, 'update'])->name('categories.update');
+    Route::delete('/api/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+    Route::post('/api/categories/reorder',      [CategoryController::class, 'reorder'])->name('categories.reorder');
+
+    Route::post('/api/videos/{video}/poster',       [VideoController::class, 'poster'])->name('videos.poster');
+    Route::post('/api/videos/{video}/poster/reset', [VideoController::class, 'resetPoster'])->name('videos.poster.reset');
     Route::get('/api/brand',  [BrandController::class, 'show'])->name('brand.show');
     Route::post('/api/brand', [BrandController::class, 'update'])->name('brand.update');
 
