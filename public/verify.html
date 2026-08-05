@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>التحقق من الأصل — MEMO STORE</title>
+<link rel="icon" href="/assets/memo-mark.png">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&family=Tajawal:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#04060F;--shard:#0A1024;--volt:#1B4DFF;--beam:#5B8CFF;--chrome:#F2F5FF;
+  --steel:#7C89A8;--line:rgba(91,140,255,.16);--ok:#3DFF9E;--bad:#FF4D6D;--notch:16px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--ink);color:var(--chrome);font-family:'Tajawal',sans-serif;
+  min-height:100vh;display:grid;place-items:center;padding:24px;line-height:1.6}
+.glow{position:fixed;width:80vw;height:80vw;border-radius:50%;top:-40vw;left:50%;transform:translateX(-50%);
+  background:radial-gradient(circle,rgba(27,77,255,.22),transparent 62%);filter:blur(40px);pointer-events:none}
+.card{--notch:20px;position:relative;width:min(560px,100%);background:var(--shard);
+  border:1px solid var(--line);padding:38px 32px;text-align:center;
+  clip-path:polygon(0 0,calc(100% - var(--notch)) 0,100% var(--notch),100% 100%,var(--notch) 100%,0 calc(100% - var(--notch)));
+  box-shadow:0 40px 90px -34px rgba(27,77,255,.5)}
+.logo{height:52px;width:auto;margin:0 auto 22px;filter:drop-shadow(0 0 26px rgba(27,77,255,.65))}
+.badge{--notch:8px;display:inline-flex;align-items:center;gap:9px;padding:9px 18px;font-size:14px;font-weight:700;
+  clip-path:polygon(0 0,calc(100% - var(--notch)) 0,100% var(--notch),100% 100%,var(--notch) 100%,0 calc(100% - var(--notch)))}
+.badge.y{background:rgba(61,255,158,.12);color:var(--ok);border:1px solid rgba(61,255,158,.4)}
+.badge.n{background:rgba(255,77,109,.12);color:var(--bad);border:1px solid rgba(255,77,109,.4)}
+h1{font-family:'Cairo',sans-serif;font-weight:900;font-size:23px;margin:20px 0 8px;line-height:1.35}
+p{color:var(--steel);font-size:14.5px}
+.rows{margin:24px 0;text-align:start;border-top:1px solid var(--line)}
+.row{display:flex;gap:14px;padding:11px 0;border-bottom:1px solid rgba(91,140,255,.08);font-size:13.5px}
+.row span:first-child{color:var(--steel);min-width:118px}
+.row b{margin-inline-start:auto;font-weight:500}
+.mono{font-family:'JetBrains Mono',monospace;font-size:12.5px;direction:ltr}
+.ch{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.ch a{--notch:7px;padding:9px 15px;border:1px solid var(--line);font-size:13px;color:var(--chrome);
+  text-decoration:none;transition:.2s;
+  clip-path:polygon(0 0,calc(100% - var(--notch)) 0,100% var(--notch),100% 100%,var(--notch) 100%,0 calc(100% - var(--notch)))}
+.ch a:hover{border-color:var(--volt);background:rgba(27,77,255,.1)}
+.note{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:#5A6478}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="card">
+  <img class="logo" src="/assets/memo-logo.png" alt="MEMO STORE">
+  <div id="out"><p>جارٍ التحقق…</p></div>
+</div>
+
+<script>
+const code = location.pathname.split('/').filter(Boolean).pop() || '';
+
+fetch(location.pathname, {headers:{'Accept':'application/json'}})
+  .then(r => r.json().then(d => ({ok:r.ok, d})))
+  .then(({ok, d}) => {
+    const out = document.getElementById('out');
+
+    if (!ok || !d.verified) {
+      out.innerHTML = `
+        <span class="badge n">✕ غير موثّق</span>
+        <h1>لا يوجد فيديو رسمي بهذا الكود</h1>
+        <p>الكود <span class="mono">${code}</span> غير مسجّل لدينا. إذا رأيت هذا الكود على فيديو،
+           فالفيديو ليس من MEMO STORE.</p>
+        <div class="ch">
+          <a href="https://wa.me/201095236175">واتساب 01095236175</a>
+          <a href="https://instagram.com/memo__store11">@memo__store11</a>
+          <a href="/">كل الفيديوهات الرسمية</a>
+        </div>
+        <p class="note">تحقّق دائماً من الكود قبل التعامل مع أي حساب يدّعي أنه نحن.</p>`;
+      return;
+    }
+
+    out.innerHTML = `
+      <span class="badge y">✓ فيديو رسمي موثّق</span>
+      <h1>${d.title_ar || d.title}</h1>
+      <p>هذا الفيديو من إنتاج <b style="color:var(--chrome)">${d.owner}</b> ومنشور رسمياً على قنواتنا.</p>
+      <div class="rows">
+        <div class="row"><span>كود التحقق</span><b class="mono">${d.verify_code}</b></div>
+        <div class="row"><span>أول نشر</span><b class="mono">${d.first_published_at || '—'}</b></div>
+        <div class="row"><span>المدة</span><b class="mono">${Math.floor(d.duration/60)}:${String(d.duration%60).padStart(2,'0')}</b></div>
+      </div>
+      <div class="ch">
+        <a href="${d.watch_url}">شاهد النسخة الأصلية</a>
+        <a href="https://wa.me/20${d.channels.whatsapp.slice(1)}">واتساب ${d.channels.whatsapp}</a>
+        <a href="https://instagram.com/${d.channels.instagram}">@${d.channels.instagram}</a>
+      </div>
+      <p class="note">قنواتنا الرسمية هي المذكورة أعلاه فقط. أي حساب آخر يعرض هذا الفيديو
+         وينسبه لنفسه فهو منتحل — أبلغنا عنه عبر واتساب.</p>`;
+  })
+  .catch(() => {
+    document.getElementById('out').innerHTML =
+      '<span class="badge n">✕ تعذّر التحقق</span><p style="margin-top:14px">حاول مرة أخرى بعد قليل.</p>';
+  });
+</script>
+</body>
+</html>

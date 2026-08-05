@@ -1,0 +1,74 @@
+name: Deploy MEMO
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: memo-production
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Syntax and boot check
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, sqlite3, gd, fileinfo
+          coverage: none
+
+      # A parse error here becomes a 500 on the live site, so catch it early.
+      - name: Lint every PHP file
+        run: find app config database routes -name "*.php" -print0 | xargs -0 -n1 -P4 php -l
+
+      - run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Boot against a throwaway database
+        run: |
+          cp .env.example .env
+          sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/" .env
+          touch database/database.sqlite
+          php artisan key:generate
+          php artisan migrate --force
+          php artisan route:list > /dev/null
+
+  deploy:
+    name: Deploy
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ secrets.APP_URL }}
+    steps:
+      - name: Pull, install, migrate, cache
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          command_timeout: 15m
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            bash deploy.sh
+
+      - name: Health check
+        run: |
+          for i in 1 2 3 4 5; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" -L "${{ secrets.APP_URL }}" || echo 000)
+            if [ "$code" = "200" ]; then echo "OK"; exit 0; fi
+            echo "attempt $i -> $code"; sleep 10
+          done
+          exit 1
+
+      - name: Library API check
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" -L "${{ secrets.APP_URL }}/api/videos" || echo 000)
+          [ "$code" = "200" ] || exit 1
