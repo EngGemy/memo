@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Video;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
@@ -24,22 +23,22 @@ class VerifyController extends Controller
             ->first();
 
         $payload = $video ? [
-            'verified'           => true,
-            'title'              => $video->title,
-            'title_ar'           => $video->title_ar,
-            'verify_code'        => $video->verify_code,
+            'verified' => true,
+            'title' => $video->title,
+            'title_ar' => $video->title_ar,
+            'verify_code' => $video->verify_code,
             'first_published_at' => optional($video->first_published_at)->toDateString(),
-            'duration'           => $video->duration,
-            'watch_url'          => url('/?v='.$video->slug),
-            'owner'              => 'MEMO STORE',
-            'channels'           => [
-                'whatsapp'  => '01095236175',
+            'duration' => $video->duration,
+            'watch_url' => url('/?v='.$video->slug),
+            'owner' => 'MEMO STORE',
+            'channels' => [
+                'whatsapp' => '01095236175',
                 'instagram' => 'memo__store11',
-                'tiktok'    => 'memo__store11',
+                'tiktok' => 'memo__store11',
             ],
         ] : [
             'verified' => false,
-            'message'  => 'No official video carries this code.',
+            'message' => 'No official video carries this code.',
         ];
 
         if ($request->wantsJson()) {
@@ -47,7 +46,7 @@ class VerifyController extends Controller
         }
 
         return response()
-            ->file(public_path('verify.html'))
+            ->view('pages.verify', ['payload' => $payload, 'code' => strtoupper($code)])
             ->header('Cache-Control', 'no-store');
     }
 }
