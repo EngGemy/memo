@@ -37,13 +37,13 @@ class HlsPackager
     private const MARK_FRACTION = 0.18;
 
     public function __construct(
-        private string $ffmpeg  = 'ffmpeg',
+        private string $ffmpeg = 'ffmpeg',
         private string $ffprobe = 'ffprobe',
     ) {}
 
     public function package(Video $video, ?callable $onProgress = null): array
     {
-        $disk      = Storage::disk($video->master_disk);
+        $disk = Storage::disk($video->master_disk);
         $masterAbs = $disk->path($video->master_path);
 
         if (! is_file($masterAbs)) {
@@ -56,15 +56,15 @@ class HlsPackager
             throw new RuntimeException('Could not read video dimensions - is this really a video file?');
         }
 
-        $uuid   = (string) Str::uuid();
+        $uuid = (string) Str::uuid();
         $hlsRel = "hls/{$uuid}";
         $hlsAbs = $disk->path($hlsRel);
         @mkdir($hlsAbs, 0750, true);
 
         $key = random_bytes(16);
-        $iv  = bin2hex(random_bytes(16));
+        $iv = bin2hex(random_bytes(16));
 
-        $keyAbs  = "{$hlsAbs}/.key.bin";
+        $keyAbs = "{$hlsAbs}/.key.bin";
         $infoAbs = "{$hlsAbs}/.keyinfo";
         file_put_contents($keyAbs, $key);
         file_put_contents($infoAbs, implode("\n", [
@@ -73,9 +73,9 @@ class HlsPackager
             $iv,
         ]));
 
-        $brand         = \App\Models\Setting::brand();
+        $brand = Setting::brand();
         $watermarkText = trim((($brand['brand_name'] ?? 'MEMO STORE').'  '.($brand['watermark_phone'] ?? '')));
-        $watermark     = $watermarkText !== '';
+        $watermark = $watermarkText !== '';
         $renditions = [];
 
         foreach ($this->ladder($probe) as $rung) {
@@ -90,13 +90,15 @@ class HlsPackager
                 // complain about too many inputs - it has to start its own chain.
                 $markW = max(48, (int) round($rung['width'] * self::MARK_FRACTION));
                 $inset = max(10, (int) round($rung['width'] * 0.035));
-                $png   = str_replace(['\', ':'], ['/', '\:'], $watermark);
+                $png = str_replace(['\\', ':'], ['/', '\\:'], $watermark);
 
                 $args[] = '-vf';
                 $args[] = "movie={$png},scale={$markW}:-2,format=rgba[wm];"
-                        . "[in]scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1[base];"
-                        . "[base][wm]overlay=W-w-{$inset}:H-h-{$inset},format=yuv420p[out]";
-            } else {]}:flags=lanczos,setsar=1,format=yuv420p";
+                        ."[in]scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1[base];"
+                        ."[base][wm]overlay=W-w-{$inset}:H-h-{$inset},format=yuv420p[out]";
+            } else {
+                $args[] = '-vf';
+                $args[] = "scale={$rung['width']}:{$rung['height']}:flags=lanczos,setsar=1,format=yuv420p";
             }
 
             $gop = (int) round(round($rung['fps']) * self::SEGMENT_SECONDS);
@@ -134,11 +136,11 @@ class HlsPackager
             }
 
             $renditions[] = [
-                'height'    => $rung['height'],
-                'width'     => $rung['width'],
-                'fps'       => $rung['fps'],
+                'height' => $rung['height'],
+                'width' => $rung['width'],
+                'fps' => $rung['fps'],
                 'bandwidth' => ($rung['vb'] + $rung['ab']) * 1000,
-                'playlist'  => "{$rung['height']}/index.m3u8",
+                'playlist' => "{$rung['height']}/index.m3u8",
             ];
         }
 
@@ -152,15 +154,15 @@ class HlsPackager
         $this->cleanup($keyAbs, $infoAbs);
 
         return [
-            'hls_path'    => $hlsRel,
-            'key'         => $key,
-            'iv'          => $iv,
-            'duration'    => (int) round($probe['duration']),
-            'renditions'  => $renditions,
-            'watermark'   => (bool) $watermark,
-            'sha256'      => hash_file('sha256', $masterAbs),   // ownership evidence
-            'poster'      => "{$hlsRel}/poster.jpg",
-            'source'      => $probe,
+            'hls_path' => $hlsRel,
+            'key' => $key,
+            'iv' => $iv,
+            'duration' => (int) round($probe['duration']),
+            'renditions' => $renditions,
+            'watermark' => (bool) $watermark,
+            'sha256' => hash_file('sha256', $masterAbs),   // ownership evidence
+            'poster' => "{$hlsRel}/poster.jpg",
+            'source' => $probe,
         ];
     }
 
@@ -176,8 +178,8 @@ class HlsPackager
     {
         $srcW = $probe['width'];
         $srcH = $probe['height'];
-        $fps  = $probe['fps'];
-        $out  = [];
+        $fps = $probe['fps'];
+        $out = [];
 
         foreach (self::HEIGHTS as $i => $targetH) {
             if ($targetH > (int) env('FFMPEG_MAX_HEIGHT', 1080)) {
@@ -199,10 +201,10 @@ class HlsPackager
 
             $out[] = [
                 'height' => $targetH,
-                'width'  => $w,
-                'fps'    => $rungFps,
-                'vb'     => $vb,
-                'ab'     => $targetH >= 720 ? 128 : 96,
+                'width' => $w,
+                'fps' => $rungFps,
+                'vb' => $vb,
+                'ab' => $targetH >= 720 ? 128 : 96,
             ];
         }
 
@@ -212,10 +214,10 @@ class HlsPackager
             $w = $this->even($srcW);
             $out[] = [
                 'height' => $h,
-                'width'  => $w,
-                'fps'    => $fps,
-                'vb'     => max(400, (int) round($w * $h * $fps * self::BPP / 1000)),
-                'ab'     => 96,
+                'width' => $w,
+                'fps' => $fps,
+                'vb' => max(400, (int) round($w * $h * $fps * self::BPP / 1000)),
+                'ab' => 96,
             ];
         }
 
@@ -269,9 +271,9 @@ class HlsPackager
         }
 
         return [
-            'width'    => (int) ($vals['width'] ?? 0),
-            'height'   => (int) ($vals['height'] ?? 0),
-            'fps'      => max(1.0, min(120.0, $fps)),
+            'width' => (int) ($vals['width'] ?? 0),
+            'height' => (int) ($vals['height'] ?? 0),
+            'fps' => max(1.0, min(120.0, $fps)),
             'duration' => (float) ($vals['duration'] ?? 0),
         ];
     }
@@ -280,7 +282,7 @@ class HlsPackager
     private function makePoster(string $master, string $hlsAbs, array $probe): void
     {
         $at = max(1, (int) ($probe['duration'] * 0.1));
-        $w  = $this->even((int) round(720 * $probe['width'] / max(1, $probe['height'])));
+        $w = $this->even((int) round(720 * $probe['width'] / max(1, $probe['height'])));
 
         $p = new Process([
             $this->ffmpeg, '-y', '-ss', (string) $at, '-i', $master,

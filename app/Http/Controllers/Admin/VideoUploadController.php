@@ -22,54 +22,55 @@ use Illuminate\Support\Str;
 class VideoUploadController extends Controller
 {
     private const CHUNK_SIZE = 8 * 1024 * 1024;
-    private const MAX_BYTES  = 20 * 1024 * 1024 * 1024;
+
+    private const MAX_BYTES = 20 * 1024 * 1024 * 1024;
 
     public function open(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'filename'    => ['required','string','max:255'],
-            'size_bytes'  => ['required','integer','min:1','max:'.self::MAX_BYTES],
-            'sha256'      => ['nullable','string','size:64'],
-            'title'       => ['required','string','max:180'],
-            'title_ar'    => ['nullable','string','max:180'],
-            'description' => ['nullable','string','max:1000'],
-            'category'    => ['required','in:fund,prot,infra,asmt'],
-            'expert_id'   => ['nullable','integer','exists:experts,id'],
+            'filename' => ['required', 'string', 'max:255'],
+            'size_bytes' => ['required', 'integer', 'min:1', 'max:'.self::MAX_BYTES],
+            'sha256' => ['nullable', 'string', 'size:64'],
+            'title' => ['required', 'string', 'max:180'],
+            'title_ar' => ['nullable', 'string', 'max:180'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'expert_id' => ['nullable', 'integer', 'exists:experts,id'],
         ]);
 
         $ext = strtolower(pathinfo($data['filename'], PATHINFO_EXTENSION));
-        abort_unless(in_array($ext, ['mp4','mov','mkv','m4v','webm'], true), 422, 'Unsupported container.');
+        abort_unless(in_array($ext, ['mp4', 'mov', 'mkv', 'm4v', 'webm'], true), 422, 'Unsupported container.');
 
         // New row per upload - no fixed slot to overwrite, videos are a library now.
         $video = Video::create([
-            'title'       => $data['title'],
-            'title_ar'    => $data['title_ar'] ?? null,
+            'title' => $data['title'],
+            'title_ar' => $data['title_ar'] ?? null,
             'description' => $data['description'] ?? null,
-            'category'    => $data['category'],
-            'expert_id'   => $data['expert_id'] ?? null,
-            'position'    => (int) Video::max('position') + 1,
-            'slug'        => Str::slug($data['title']).'-'.Str::lower(Str::random(5)),
-            'status'      => 'uploading',
-            'is_public'   => false,
+            'category_id' => $data['category_id'] ?? null,
+            'expert_id' => $data['expert_id'] ?? null,
+            'position' => (int) Video::max('position') + 1,
+            'slug' => Str::slug($data['title']).'-'.Str::lower(Str::random(5)),
+            'status' => 'uploading',
+            'is_public' => false,
         ]);
 
         $session = UploadSession::create([
-            'uuid'            => (string) Str::uuid(),
-            'user_id'         => $request->user()->id,
-            'filename'        => $data['filename'],
-            'size_bytes'      => $data['size_bytes'],
-            'chunk_size'      => self::CHUNK_SIZE,
-            'total_chunks'    => (int) ceil($data['size_bytes'] / self::CHUNK_SIZE),
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $request->user()->id,
+            'filename' => $data['filename'],
+            'size_bytes' => $data['size_bytes'],
+            'chunk_size' => self::CHUNK_SIZE,
+            'total_chunks' => (int) ceil($data['size_bytes'] / self::CHUNK_SIZE),
             'received_chunks' => [],
-            'sha256'          => $data['sha256'] ?? null,
+            'sha256' => $data['sha256'] ?? null,
         ]);
 
         Storage::disk('private')->makeDirectory("chunks/{$session->uuid}");
 
         return response()->json([
-            'uuid'         => $session->uuid,
-            'video_id'     => $video->id,
-            'chunk_size'   => $session->chunk_size,
+            'uuid' => $session->uuid,
+            'video_id' => $video->id,
+            'chunk_size' => $session->chunk_size,
             'total_chunks' => $session->total_chunks,
         ], 201);
     }
@@ -86,7 +87,7 @@ class VideoUploadController extends Controller
 
         $path = Storage::disk('private')->path("chunks/{$uuid}/{$index}.part");
 
-        $in  = fopen('php://input', 'rb');
+        $in = fopen('php://input', 'rb');
         $out = fopen($path, 'wb');
         stream_copy_to_stream($in, $out);
         fclose($in);
@@ -126,14 +127,14 @@ class VideoUploadController extends Controller
 
         $session->update(['status' => 'assembling']);
 
-        $disk    = Storage::disk('private');
-        $ext     = pathinfo($session->filename, PATHINFO_EXTENSION);
+        $disk = Storage::disk('private');
+        $ext = pathinfo($session->filename, PATHINFO_EXTENSION);
         $relPath = "masters/{$uuid}.{$ext}";
-        $out     = fopen($disk->path($relPath), 'wb');
+        $out = fopen($disk->path($relPath), 'wb');
 
         for ($i = 0; $i < $session->total_chunks; $i++) {
             $part = $disk->path("chunks/{$uuid}/{$i}.part");
-            $in   = fopen($part, 'rb');
+            $in = fopen($part, 'rb');
             stream_copy_to_stream($in, $out);
             fclose($in);
             @unlink($part);
@@ -152,9 +153,9 @@ class VideoUploadController extends Controller
         $video->update([
             'master_path' => $relPath,
             'master_disk' => 'private',
-            'size_bytes'  => $disk->size($relPath),
-            'status'      => 'queued',
-            'progress'    => 0,
+            'size_bytes' => $disk->size($relPath),
+            'status' => 'queued',
+            'progress' => 0,
         ]);
 
         $session->update(['status' => 'complete']);
